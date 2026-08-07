@@ -1,38 +1,32 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Module Name: ring_oscillator
-// Description: Targeted 5-Stage Ring Oscillator Sensor Module.
-//              - Measures local propagation delay shifts (delta_delay).
-//              - Uses Xilinx Synthesis Keep/Dont_Touch attributes to preserve
-//                combinational feedback loop structure.
-// IEEE 1364-2001 Verilog Standard Compliant
-//////////////////////////////////////////////////////////////////////////////////
 
 module ring_oscillator (
-    input  wire        enable,
-    input  wire        rare_net_in,
-    output wire        ro_out,
-    output reg  [15:0] freq_count
+    input wire enable,
+    input wire rare_net_in,
+    output wire ro_out,
+    output reg [15:0] freq_count
 );
 
-    // Synthesis attributes to prevent Vivado EDA optimizer from trimming feedback loop
-    (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire [5:0] node;
+    // Synthesis attributes placed directly before wire declarations
+    (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire stage0;
+    (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire stage1;
+    (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire stage2;
+    (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire stage3;
+    (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire stage4;
 
-    // 5-Stage Combinational Loop: NAND gate control + 4 inverter stages
-    // Tapping rare_net_in to introduce path delay shift on activation
-    assign (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) node[0] = ~(enable & node[5]);
-    assign (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) node[1] = ~node[0];
-    assign (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) node[2] = ~node[1] ^ rare_net_in;
-    assign (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) node[3] = ~node[2];
-    assign (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) node[4] = ~node[3];
-    assign (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) node[5] = ~node[4];
+    // 5-stage combinational loop with NAND gating
+    assign stage0 = ~(enable & stage4);
+    assign stage1 = ~stage0;
+    assign stage2 = ~stage1;
+    assign stage3 = ~stage2;
+    assign stage4 = ~stage3;
 
-    assign ro_out = node[5];
+    assign ro_out = stage4;
 
-    // 16-bit Frequency Counter incremented on every rising edge of ro_out
+    // 16-bit sampling counter
     always @(posedge ro_out or negedge enable) begin
         if (!enable) begin
-            freq_count <= 16'h0000;
+            freq_count <= 16'd0;
         end else begin
             freq_count <= freq_count + 1'b1;
         end
