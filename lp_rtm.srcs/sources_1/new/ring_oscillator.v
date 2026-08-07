@@ -14,12 +14,12 @@ module ring_oscillator (
     (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire stage3;
     (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) wire stage4;
 
-    // 5-stage combinational loop with NAND gating
-    assign stage0 = ~(enable & stage4);
-    assign stage1 = ~stage0;
-    assign stage2 = ~stage1;
-    assign stage3 = ~stage2;
-    assign stage4 = ~stage3;
+    // 5-stage combinational loop with NAND gating and propagation delays for simulation
+    assign #1 stage0 = ~(enable & stage4);
+    assign #1 stage1 = ~stage0;
+    assign #1 stage2 = ~stage1;
+    assign #1 stage3 = ~stage2;
+    assign #1 stage4 = ~stage3;
 
     assign ro_out = stage4;
 

@@ -59,9 +59,17 @@ module tb_top;
     // Test Sequence & CSV Reporting
     initial begin
         // Open CSV Report file and write header
-        f_csv = $fopen("reports/runtime_sensor_data.csv", "w");
+        f_csv = $fopen("../../../../reports/runtime_sensor_data.csv", "w");
+        if (!f_csv) begin
+            f_csv = $fopen("reports/runtime_sensor_data.csv", "w");
+        end
+        if (!f_csv) begin
+            f_csv = $fopen("runtime_sensor_data.csv", "w");
+        end
         if (f_csv) begin
             $fdisplay(f_csv, "timestamp, test_mode, ro1_freq, ro2_freq, freq_delta");
+        end else begin
+            $display("WARNING: Could not open runtime_sensor_data.csv for writing.");
         end
 
         // Initialize Inputs
