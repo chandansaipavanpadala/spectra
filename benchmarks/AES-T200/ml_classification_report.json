@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "total_samples": 100,
+    "normal_samples": 80,
+    "anomalous_samples": 20,
+    "rare_nets_fused_count": 0
+  },
+  "metrics": {
+    "random_forest": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "false_positive_rate": 0.0,
+      "cv_accuracy_mean": 1.0,
+      "cv_accuracy_std": 0.0,
+      "confusion_matrix": {
+        "TN": 16,
+        "FP": 0,
+        "FN": 0,
+        "TP": 4
+      }
+    },
+    "gradient_boosting": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "false_positive_rate": 0.0,
+      "cv_accuracy_mean": 1.0,
+      "cv_accuracy_std": 0.0,
+      "confusion_matrix": {
+        "TN": 16,
+        "FP": 0,
+        "FN": 0,
+        "TP": 4
+      }
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "ro1_freq",
+      "importance": 0.485
+    },
+    {
+      "feature": "ro2_freq",
+      "importance": 0.485
+    },
+    {
+      "feature": "frequency_ratio",
+      "importance": 0.03
+    },
+    {
+      "feature": "freq_delta",
+      "importance": 0.0
+    }
+  ]
+}

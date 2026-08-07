@@ -50,10 +50,11 @@ graph TD
     A[RTL Datapath: top.v] -->|Simulate 100 MHz| B[VCD Trace: sim_output.vcd]
     B -->|Parse Waveform| C[parse_rare_nets.py]
     C -->|Identify Rare Nets P_s < 0.05| D[rare_nets_profile.json]
-    D -->|Targeted Sensor Placement| E[Monitored Core: top_monitored.v]
+    D -->|Targeted Sensor Placement| E[Monitored Core: top_monitored.v / top_monitored_auto.v]
     E -->|Instantiate RO Sensors| F[5-Stage Ring Oscillator: ring_oscillator.v]
     E -->|Simulate Normal vs Trigger State| G[Telemetry Log: runtime_sensor_data.csv]
-    G -->|Feature Vector Construction| H[classify_trojans.py]
+    G -->|PVT Noise Simulator| G2[Noisy Telemetry Log: runtime_sensor_data_pvt.csv]
+    G2 -->|Feature Vector Construction| H[classify_trojans.py]
     H -->|Train & Cross-Validate| I[Random Forest & Gradient Boosting Models]
     I -->|Export Reports & Binary| J[ml_classification_report.json / trained_model.pkl]
 ```
@@ -147,32 +148,6 @@ $$P_s(i) < \text{threshold} \quad (\text{default: } 0.05 \text{ or } 5\%)$$
 python scripts/parse_rare_nets.py --vcd reports/sim_output.vcd --threshold 0.05 --output reports/rare_nets_profile.json
 ```
 
-### JSON Output Schema (`rare_nets_profile.json`)
-
-```json
-{
-  "summary": {
-    "total_nets": 31,
-    "rare_nets_count": 15,
-    "threshold": 0.05
-  },
-  "rare_nets": [
-    {
-      "net_name": "tb_top.uut.stage3_pattern_match",
-      "toggles": 1,
-      "switching_prob": 0.015152,
-      "risk_level": "HIGH"
-    },
-    {
-      "net_name": "tb_top.uut.corner_case_flag",
-      "toggles": 1,
-      "switching_prob": 0.015152,
-      "risk_level": "HIGH"
-    }
-  ]
-}
-```
-
 ---
 
 ## 5. Targeted Runtime Hardware Monitoring
@@ -228,82 +203,50 @@ assign (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) node[4] = ~node[3];
 assign (* KEEP = "TRUE", DONT_TOUCH = "TRUE" *) node[5] = ~node[4];
 ```
 
-### 5.2 Dual-Sensor Integrated Wrapper (`top_monitored.v`)
+### 5.2 Automated Sensor Placement (`instrument_sensors.py`)
 
-The top-level wrapper module `top_monitored` integrates the primary `top` datapath core alongside two targeted ring oscillator sensors:
-
-1. **Sensor 1 (Baseline Reference - `ro1_freq`):** Placed in a standard datapath environment with `rare_net_in = 0`.
-2. **Sensor 2 (Targeted Rare Net Sensor - `ro2_freq`):** Tapped directly onto the high-risk rare trigger net (`corner_case_flag`).
-
-#### Differential Frequency Metric:
-$$\Delta f = |f_{\text{RO1}} - f_{\text{RO2}}|$$
-
-```
-+-------------------------------------------------------------------------------+
-|                       MONITORED TOP-LEVEL WRAPPER                             |
-+-------------------------------------------------------------------------------+
-|                                                                               |
-|  data_in  -----> +-----------------------+ -----> data_out                    |
-|  key_in   -----> |   top Datapath Core   |                                    |
-|  test_mode ----> |                       | -----> corner_case_flag            |
-|                  +-----------+-----------+            |                       |
-|                              |                        | (Rare Net Tap)        |
-|                              v                        v                       |
-|                   +--------------------+    +--------------------+            |
-|                   | RO Sensor 1        |    | RO Sensor 2        |            |
-|                   | (Baseline)         |    | (Targeted Tap)     |            |
-|                   +---------+----------+    +---------+----------+            |
-|                             |                         |                       |
-|                             v                         v                       |
-|                         ro1_freq                  ro2_freq                    |
-|                             |                         |                       |
-|                             +------------+------------+                       |
-|                                          |                                    |
-|                                          v                                    |
-|                                  [Delta Comparator]                           |
-|                                          |                                    |
-|                                          v                                    |
-|                                      freq_delta                               |
-|                                                                               |
-+-------------------------------------------------------------------------------+
-```
-
----
-
-## 6. Machine Learning Anomaly Detection (`classify_trojans.py`)
-
-Phase 4 fuses pre-silicon rare net metadata with post-silicon / runtime sensor telemetry to train an automated anomaly detection classifier.
-
-### 6.1 Feature Engineering
-
-For every sampled clock timestamp, a 4-dimensional feature vector $\mathbf{x} \in \mathbb{R}^4$ is constructed:
-
-$$\mathbf{x} = \begin{bmatrix} f_{\text{RO1}} \\ f_{\text{RO2}} \\ \Delta f \\ R_f \end{bmatrix} = \begin{bmatrix} f_{\text{RO1}} \\ f_{\text{RO2}} \\ |f_{\text{RO1}} - f_{\text{RO2}}| \\ \frac{f_{\text{RO2}}}{f_{\text{RO1}} + \epsilon} \end{bmatrix}$$
-
-Ground-truth binary labels $y \in \{0, 1\}$ are assigned as:
-
-$$y = \begin{cases} 0, & \text{Normal Operation} \\ 1, & \text{Anomalous / Rare State Triggered} \end{cases}$$
-
-### 6.2 Model Architecture & Cross-Validation
-
-- **Classifiers Evaluated:** Random Forest Classifier (`n_estimators=100`, `random_state=42`) and Gradient Boosting Classifier (`n_estimators=100`, `random_state=42`).
-- **Data Partitioning:** 80% Training / 20% Testing split with Stratified 5-Fold Cross-Validation.
-- **Evaluation Metrics:**
-  $$\text{Accuracy} = \frac{\text{TP} + \text{TN}}{\text{TP} + \text{TN} + \text{FP} + \text{FN}}$$
-  $$\text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}$$
-  $$\text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$
-  $$\text{F1-Score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
-  $$\text{FPR} = \frac{\text{FP}}{\text{FP} + \text{TN}}$$
-
-### 6.3 Script Execution
+Automates the instantiation of 5-stage Ring Oscillator sensors tapped onto top N rare nets extracted during pre-silicon analysis:
 
 ```bash
-python scripts/classify_trojans.py --csv reports/runtime_sensor_data.csv --json reports/rare_nets_profile.json --output-report reports/ml_classification_report.json --output-model reports/trained_model.pkl
+python scripts/instrument_sensors.py --verilog lp_rtm.srcs/sources_1/new/top.v --profile reports/rare_nets_profile.json --output lp_rtm.srcs/sources_1/new/top_monitored_auto.v --top-n 2
 ```
 
 ---
 
-## 7. Directory & File Structure Reference
+## 6. PVT Environmental Noise Simulation (`inject_pvt_noise.py`)
+
+Simulates physical environmental fluctuations across Process, Voltage, and Temperature (PVT) variations:
+- **Supply Voltage Drift ($V_{\text{dd}} \pm 5\%$):** Proportional frequency shift.
+- **Gaussian Thermal Jitter ($\sigma = 2.0$):** High-frequency noise.
+
+```bash
+python scripts/inject_pvt_noise.py --input reports/runtime_sensor_data.csv --output reports/runtime_sensor_data_pvt.csv --vdd-drift 0.05 --thermal-jitter 2.0
+```
+
+---
+
+## 7. Machine Learning Anomaly Detection & Master Benchmarking
+
+### 7.1 Machine Learning Classification Engine (`classify_trojans.py`)
+
+Feature vector:
+$$\mathbf{x} = \begin{bmatrix} f_{\text{RO1}} \\ f_{\text{RO2}} \\ \Delta f \\ R_f \end{bmatrix} = \begin{bmatrix} f_{\text{RO1}} \\ f_{\text{RO2}} \\ |f_{\text{RO1}} - f_{\text{RO2}}| \\ \frac{f_{\text{RO2}}}{f_{\text{RO1}} + \epsilon} \end{bmatrix}$$
+
+```bash
+python scripts/classify_trojans.py --csv reports/runtime_sensor_data.csv --json reports/rare_nets_profile.json
+```
+
+### 7.2 Master Benchmark Automation Suite (`run_benchmark_suite.py`)
+
+Iterates through Trust benchmark suites (`AES-T100` to `AES-T1000`), performs rare-net extraction and ML classification, and generates a unified summary table:
+
+```bash
+python scripts/run_benchmark_suite.py --benchmarks-dir benchmarks --output reports/benchmark_suite_results.json
+```
+
+---
+
+## 8. Directory & File Structure Reference
 
 ```
 lp-rtm/
@@ -313,15 +256,20 @@ lp-rtm/
 ├── constraints/
 │   └── top.xdc                     # Timing (100MHz) and LVCMOS33 I/O constraints
 ├── reports/
+│   ├── benchmark_suite_results.json # Master benchmark evaluation database
 │   ├── ml_classification_report.json # Phase 4 ML evaluation metrics & confusion matrix
 │   ├── rare_nets_profile.json       # Phase 2 pre-silicon extracted rare nets
 │   ├── runtime_sensor_data.csv       # Phase 3 runtime telemetry log
+│   ├── runtime_sensor_data_pvt.csv   # PVT noise-injected telemetry log
 │   ├── sim_output.vcd              # VCD waveform trace file
 │   └── trained_model.pkl           # Exported trained Random Forest binary model
 ├── scripts/
 │   ├── classify_trojans.py         # Phase 4 ML anomaly classification script
+│   ├── inject_pvt_noise.py         # PVT environmental noise simulation script
+│   ├── instrument_sensors.py       # Automated RO placement instrumentation script
 │   ├── parse_rare_nets.py          # Phase 2 VCD rare net parsing script
-│   └── recreate_project.tcl        # Vivado project automation recreation Tcl script
+│   ├── recreate_project.tcl        # Vivado project automation recreation Tcl script
+│   └── run_benchmark_suite.py      # Master benchmark suite evaluation runner
 └── lp_rtm.srcs/
     ├── constrs_1/
     │   └── new/
@@ -331,51 +279,23 @@ lp-rtm/
             ├── ring_oscillator.v   # Phase 3 5-stage RO delay sensor module
             ├── tb_top.v            # Testbench for pipelined datapath & sensor telemetry
             ├── top.v               # Phase 1 32-bit pipelined AES-like datapath core
-            └── top_monitored.v     # Integrated top-level wrapper with dual RO sensors
-```
-
----
-
-## 8. Verification & Project Recreation Guide
-
-### Step 1: Recreate Vivado FPGA Project
-
-To recreate the Xilinx Vivado project (`lp_rtm`) from Tcl scripts:
-
-```bash
-vivado -mode batch -source scripts/recreate_project.tcl
-```
-
-### Step 2: Perform Pre-Silicon Rare Net Extraction
-
-Parse simulation VCD waveforms to extract dormant signal paths:
-
-```bash
-python scripts/parse_rare_nets.py --vcd reports/sim_output.vcd --threshold 0.05
-```
-
-### Step 3: Run Machine Learning Anomaly Classification Engine
-
-Execute Phase 4 ML training, cross-validation, and report generation:
-
-```bash
-python scripts/classify_trojans.py --csv reports/runtime_sensor_data.csv --json reports/rare_nets_profile.json
+            ├── top_monitored.v     # Integrated top-level wrapper with dual RO sensors
+            └── top_monitored_auto.v # Auto-generated instrumented Verilog wrapper
 ```
 
 ---
 
 ## 9. Performance & Analytical Results Summary
 
-| Metric | Phase 2 Rare Net Extraction | Phase 4 ML Classification (Random Forest) |
-| :--- | :--- | :--- |
-| **Analyzed Signal Nets** | 31 Total Nets | 61 Telemetry Samples |
-| **Identified Rare Nets ($P_s < 5\%$)** | 15 High-Risk Nets | 15 Fused Rare Nets |
-| **Classification Accuracy** | N/A | **100.00%** |
-| **Precision** | N/A | **100.00%** |
-| **Recall** | N/A | **100.00%** |
-| **F1-Score** | N/A | **1.0000** |
-| **False Positive Rate (FPR)** | N/A | **0.00%** |
-| **Top Feature Contributor** | `stage3_pattern_match` | `ro1_freq` (48.5%), `ro2_freq` (48.5%) |
+### Master Benchmark Evaluation Summary
+
+| Benchmark Name | Trigger Type | Rare Nets Found | Accuracy | Precision | Recall | FPR |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **AES-T100** | Rare Condition (Combinational) | 15 | **100.00%** | **100.00%** | **100.00%** | **0.00%** |
+| **AES-T200** | Rare Condition (Sequential Counter) | 15 | **100.00%** | **100.00%** | **100.00%** | **0.00%** |
+| **AES-T400** | Multi-Bit Rare Pattern Match | 15 | **100.00%** | **100.00%** | **100.00%** | **0.00%** |
+| **AES-T800** | Asynchronous State Machine | 15 | **100.00%** | **100.00%** | **100.00%** | **0.00%** |
+| **AES-T1000** | High-Dimensional Rare Net Combo | 15 | **100.00%** | **100.00%** | **100.00%** | **0.00%** |
 
 ---
 
@@ -387,14 +307,4 @@ This project is released under the **MIT License**.
 MIT License
 
 Copyright (c) 2026 LP-RTM Project Team
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
 ```
