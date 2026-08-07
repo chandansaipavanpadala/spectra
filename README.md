@@ -96,27 +96,28 @@ The core datapath module (`top`) is a 32-bit, multi-stage pipelined architecture
 ```
 
 #### Pipeline Operations:
+
 1. **Stage 1 (SubBytes & Key Addition):**
-   $$\text{s1\_sub\_bytes}[7:0] = (\text{data\_in}[7:0] \oplus \text{key\_in}[7:0]) \oplus \text{0x63}$$
-   $$\text{s1\_sub\_bytes}[15:8] = (\text{data\_in}[15:8] \oplus \text{key\_in}[15:8]) \oplus \text{0x7C}$$
-   $$\text{s1\_sub\_bytes}[23:16] = (\text{data\_in}[23:16] \oplus \text{key\_in}[23:16]) \oplus \text{0x77}$$
-   $$\text{s1\_sub\_bytes}[31:24] = (\text{data\_in}[31:24] \oplus \text{key\_in}[31:24]) \oplus \text{0x7B}$$
+   $$S_1[7:0] = (D_{\text{in}}[7:0] \oplus K_{\text{in}}[7:0]) \oplus \text{0x63}$$
+   $$S_1[15:8] = (D_{\text{in}}[15:8] \oplus K_{\text{in}}[15:8]) \oplus \text{0x7C}$$
+   $$S_1[23:16] = (D_{\text{in}}[23:16] \oplus K_{\text{in}}[23:16]) \oplus \text{0x77}$$
+   $$S_1[31:24] = (D_{\text{in}}[31:24] \oplus K_{\text{in}}[31:24]) \oplus \text{0x7B}$$
 
 2. **Stage 2 (ShiftRows Permutation):**
    Circular byte rotation shifting 32-bit words across byte boundaries:
-   $$\text{s2\_shift\_rows} = \{\text{stage1\_data}[23:16], \text{stage1\_data}[15:8], \text{stage1\_data}[7:0], \text{stage1\_data}[31:24]\}$$
+   $$S_2 = \{S_1[23:16], S_1[15:8], S_1[7:0], S_1[31:24]\}$$
 
 3. **Stage 3 (MixColumns Linear Combination):**
    Linear XOR feedback transformation across byte channels:
-   $$\text{s3\_mix\_columns}[7:0] = \text{stage2\_data}[7:0] \oplus \text{stage2\_data}[15:8] \oplus \text{0x1F}$$
-   $$\text{s3\_mix\_columns}[15:8] = \text{stage2\_data}[15:8] \oplus \text{stage2\_data}[23:16] \oplus \text{0x3D}$$
-   $$\text{s3\_mix\_columns}[23:16] = \text{stage2\_data}[23:16] \oplus \text{stage2\_data}[31:24] \oplus \text{0x5A}$$
-   $$\text{s3\_mix\_columns}[31:24] = \text{stage2\_data}[31:24] \oplus \text{stage2\_data}[7:0] \oplus \text{0x79}$$
+   $$S_3[7:0] = S_2[7:0] \oplus S_2[15:8] \oplus \text{0x1F}$$
+   $$S_3[15:8] = S_2[15:8] \oplus S_2[23:16] \oplus \text{0x3D}$$
+   $$S_3[23:16] = S_2[23:16] \oplus S_2[31:24] \oplus \text{0x5A}$$
+   $$S_3[31:24] = S_2[31:24] \oplus S_2[7:0] \oplus \text{0x79}$$
 
 4. **DFT / Corner-Case Trigger Logic:**
    - Trigger Condition: `test_mode == 1` AND `data_in == 32'hA5A5_5A5A`
    - Active Payload: Asserts `corner_case_flag = 1` and inverts bit 0 of `data_out`:
-     $$\text{data\_out} = \{\text{stage3\_data}[31:1], \sim\text{stage3\_data}[0]\}$$
+     $$D_{\text{out}} = \{S_3[31:1], \sim S_3[0]\}$$
    - Inactive State: `corner_case_flag = 0`, `data_out = stage3_data`.
 
 ---
@@ -235,7 +236,7 @@ The top-level wrapper module `top_monitored` integrates the primary `top` datapa
 2. **Sensor 2 (Targeted Rare Net Sensor - `ro2_freq`):** Tapped directly onto the high-risk rare trigger net (`corner_case_flag`).
 
 #### Differential Frequency Metric:
-$$\text{freq\_delta} = |\text{ro1\_freq} - \text{ro2\_freq}|$$
+$$\Delta f = |f_{\text{RO1}} - f_{\text{RO2}}|$$
 
 ```
 +-------------------------------------------------------------------------------+
@@ -277,11 +278,11 @@ Phase 4 fuses pre-silicon rare net metadata with post-silicon / runtime sensor t
 
 For every sampled clock timestamp, a 4-dimensional feature vector $\mathbf{x} \in \mathbb{R}^4$ is constructed:
 
-$$\mathbf{x} = \begin{bmatrix} \text{ro1\_freq} \\ \text{ro2\_freq} \\ \text{freq\_delta} \\ \text{frequency\_ratio} \end{bmatrix} = \begin{bmatrix} f_{\text{RO1}} \\ f_{\text{RO2}} \\ |f_{\text{RO1}} - f_{\text{RO2}}| \\ \frac{f_{\text{RO2}}}{f_{\text{RO1}} + \epsilon} \end{bmatrix}$$
+$$\mathbf{x} = \begin{bmatrix} f_{\text{RO1}} \\ f_{\text{RO2}} \\ \Delta f \\ R_f \end{bmatrix} = \begin{bmatrix} f_{\text{RO1}} \\ f_{\text{RO2}} \\ |f_{\text{RO1}} - f_{\text{RO2}}| \\ \frac{f_{\text{RO2}}}{f_{\text{RO1}} + \epsilon} \end{bmatrix}$$
 
 Ground-truth binary labels $y \in \{0, 1\}$ are assigned as:
 
-$$y = \begin{cases} 0, & \text{Normal Operation } (\text{test\_mode} = 0) \\ 1, & \text{Anomalous / Rare State Triggered } (\text{test\_mode} = 1) \end{cases}$$
+$$y = \begin{cases} 0, & \text{Normal Operation} \\ 1, & \text{Anomalous / Rare State Triggered} \end{cases}$$
 
 ### 6.2 Model Architecture & Cross-Validation
 
