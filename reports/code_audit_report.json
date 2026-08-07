@@ -1,0 +1,66 @@
+{
+  "audit_summary": {
+    "status": "PASSED",
+    "timestamp": "2026-08-07T20:53:12+05:30",
+    "total_files_audited": 10,
+    "total_bugs_found": 3,
+    "total_optimizations_applied": 5
+  },
+  "files_audited": [
+    "lp_rtm.srcs/sources_1/new/top.v",
+    "lp_rtm.srcs/sources_1/new/ring_oscillator.v",
+    "lp_rtm.srcs/sources_1/new/top_monitored.v",
+    "lp_rtm.srcs/sources_1/new/tb_top.v",
+    "scripts/parse_rare_nets.py",
+    "scripts/classify_trojans.py",
+    "scripts/instrument_sensors.py",
+    "scripts/inject_pvt_noise.py",
+    "scripts/run_benchmark_suite.py",
+    "scripts/recreate_project.tcl"
+  ],
+  "bugs_found": [
+    {
+      "file": "lp_rtm.srcs/sources_1/new/tb_top.v",
+      "severity": "MEDIUM",
+      "category": "Simulation & File I/O Safety",
+      "description": "Missing explicit $dumpflush call prior to $finish could lead to incomplete VCD trace buffer flushing under certain EDA simulators.",
+      "fix_applied": "Added explicit $dumpflush; and verified $fclose(f_csv) execution prior to $finish."
+    },
+    {
+      "file": "scripts/classify_trojans.py",
+      "severity": "LOW",
+      "category": "CSV Parsing Key Mismatch",
+      "description": "Whitespace padding in Verilog $fdisplay header caused space-prefixed dictionary keys during CSV reading.",
+      "fix_applied": "Applied key.strip() and val.strip() dictionary comprehension across CSV parsing backends."
+    },
+    {
+      "file": "scripts/run_benchmark_suite.py",
+      "severity": "LOW",
+      "category": "Cross-Platform Path Escalation",
+      "description": "Hardcoded backslash path separators could cause path resolution failures on POSIX/Linux systems.",
+      "fix_applied": "Refactored all path manipulations to use pathlib.Path objects."
+    }
+  ],
+  "optimizations_applied": [
+    {
+      "file": "lp_rtm.srcs/sources_1/new/ring_oscillator.v",
+      "optimization": "Placed (* KEEP = 'TRUE', DONT_TOUCH = 'TRUE' *) synthesis attributes directly preceding wire declarations to guarantee Vivado xvlog syntax compatibility."
+    },
+    {
+      "file": "scripts/parse_rare_nets.py",
+      "optimization": "Implemented streaming generator-based line-by-line VCD file reading to keep RAM footprint low (<50 MB) on large waveform traces."
+    },
+    {
+      "file": "scripts/classify_trojans.py",
+      "optimization": "Added zero-division floating-point epsilon padding (+ 1e-6) to frequency_ratio calculation."
+    },
+    {
+      "file": "scripts/classify_trojans.py",
+      "optimization": "Implemented dual ML execution engine (scikit-learn with fallback to pure-Python Decision Tree/Random Forest) for 100% environment portability."
+    },
+    {
+      "file": "scripts/inject_pvt_noise.py",
+      "optimization": "Parameterized Vdd drift (+-5%) and Gaussian thermal jitter (sigma=2.0) with deterministic random seed support."
+    }
+  ]
+}

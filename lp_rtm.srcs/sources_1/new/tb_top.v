@@ -136,6 +136,7 @@ module tb_top;
 
         #50;
         $display("=== Phase 3 Simulation Complete. CSV Logged to reports/runtime_sensor_data.csv ===");
+        $dumpflush;
         $finish;
     end
 
