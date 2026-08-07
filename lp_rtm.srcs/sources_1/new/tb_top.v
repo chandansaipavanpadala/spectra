@@ -1,11 +1,12 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Module Name: tb_top
-// Description: Testbench for 32-bit Pipelined Datapath Top Module.
-//              - 100 MHz clock generation (10ns period)
-//              - Pass 1: 50 random 32-bit inputs with test_mode = 0
-//              - Pass 2: Target test vector 32'hA5A5_5A5A with test_mode = 1
-//              - VCD trace logging
+// Description: Phase 3 Testbench for Monitored Pipelined Datapath (top_monitored).
+//              - Instantiates top_monitored module with dual RO sensors.
+//              - Pass A: Standard Operation (test_mode = 0)
+//              - Pass B: Target Corner-Case Mode (test_mode = 1)
+//              - Logs sensor output traces to reports/runtime_sensor_data.csv
+//              - Dumps VCD waveform trace
 // IEEE 1364-2001 Verilog Standard Compliant
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -21,11 +22,15 @@ module tb_top;
 
     wire [31:0] data_out;
     wire        corner_case_flag;
+    wire [15:0] ro1_freq;
+    wire [15:0] ro2_freq;
+    wire [15:0] freq_delta;
 
     integer i;
+    integer f_csv;
 
-    // Instantiate Unit Under Test (UUT)
-    top uut (
+    // Instantiate Monitored Unit Under Test (UUT)
+    top_monitored uut (
         .clk(clk),
         .rst(rst),
         .enable(enable),
@@ -33,7 +38,10 @@ module tb_top;
         .data_in(data_in),
         .key_in(key_in),
         .data_out(data_out),
-        .corner_case_flag(corner_case_flag)
+        .corner_case_flag(corner_case_flag),
+        .ro1_freq(ro1_freq),
+        .ro2_freq(ro2_freq),
+        .freq_delta(freq_delta)
     );
 
     // 100 MHz Clock Generation (Period = 10ns)
@@ -42,14 +50,20 @@ module tb_top;
         forever #5 clk = ~clk;
     end
 
-    // VCD Dump Logging
+    // VCD Dump Waveform Logging
     initial begin
         $dumpfile("sim_output.vcd");
         $dumpvars(0, tb_top);
     end
 
-    // Test Sequence
+    // Test Sequence & CSV Reporting
     initial begin
+        // Open CSV Report file and write header
+        f_csv = $fopen("reports/runtime_sensor_data.csv", "w");
+        if (f_csv) begin
+            $fdisplay(f_csv, "timestamp, test_mode, ro1_freq, ro2_freq, freq_delta");
+        end
+
         // Initialize Inputs
         rst       = 1'b1;
         enable    = 1'b0;
@@ -64,42 +78,56 @@ module tb_top;
         #10;
 
         // ---------------------------------------------------------------------
-        // Pass 1: Drive 50 random 32-bit inputs with test_mode = 0
+        // Pass A: Standard Operation (test_mode = 0)
         // ---------------------------------------------------------------------
-        $display("=== Starting Pass 1: Normal Operation (test_mode = 0) ===");
+        $display("=== Phase 3: Starting Pass A (Standard Operation, test_mode = 0) ===");
         test_mode = 1'b0;
         key_in    = 32'h1234_5678;
 
         for (i = 0; i < 50; i = i + 1) begin
             data_in = $random;
             @(posedge clk);
-            $display("[Pass 1 - Cycle %0d] data_in = 0x%8h | data_out = 0x%8h | corner_case_flag = %b",
-                     i, data_in, data_out, corner_case_flag);
+            if (f_csv) begin
+                $fdisplay(f_csv, "%0t, %0d, %0d, %0d, %0d", $time, test_mode, ro1_freq, ro2_freq, freq_delta);
+            end
+            $display("[Pass A - Cycle %0d] data_in = 0x%8h | RO1 = %0d, RO2 = %0d, Delta = %0d",
+                     i, data_in, ro1_freq, ro2_freq, freq_delta);
         end
 
         // Drain pipeline stages
         repeat (4) @(posedge clk);
 
         // ---------------------------------------------------------------------
-        // Pass 2: Drive target test vector 32'hA5A5_5A5A with test_mode = 1
+        // Pass B: Target Corner-Case / Test Mode (test_mode = 1)
         // ---------------------------------------------------------------------
-        $display("=== Starting Pass 2: DFT / Test Mode (test_mode = 1) ===");
+        $display("=== Phase 3: Starting Pass B (Corner-Case Mode, test_mode = 1) ===");
         test_mode = 1'b1;
         data_in   = 32'hA5A5_5A5A;
         key_in    = 32'h8765_4321;
 
         @(posedge clk);
-        $display("[Pass 2 - Vector Applied] data_in = 0x%8h (test_mode = %b)", data_in, test_mode);
+        if (f_csv) begin
+            $fdisplay(f_csv, "%0t, %0d, %0d, %0d, %0d", $time, test_mode, ro1_freq, ro2_freq, freq_delta);
+        end
+        $display("[Pass B - Trigger Vector] data_in = 0x%8h | RO1 = %0d, RO2 = %0d, Delta = %0d",
+                 data_in, ro1_freq, ro2_freq, freq_delta);
 
-        // Advance clock to trace pipeline propagation (4 pipeline stages)
-        repeat (4) begin
+        // Trace pipeline propagation and log frequency drops
+        repeat (10) begin
             @(posedge clk);
-            $display("[Pass 2 - Pipeline Trace] data_out = 0x%8h | corner_case_flag = %b",
-                     data_out, corner_case_flag);
+            if (f_csv) begin
+                $fdisplay(f_csv, "%0t, %0d, %0d, %0d, %0d", $time, test_mode, ro1_freq, ro2_freq, freq_delta);
+            end
+            $display("[Pass B - Trace] Flag = %b | RO1 = %0d, RO2 = %0d, Delta = %0d",
+                     corner_case_flag, ro1_freq, ro2_freq, freq_delta);
+        end
+
+        if (f_csv) begin
+            $fclose(f_csv);
         end
 
         #50;
-        $display("=== Simulation Complete ===");
+        $display("=== Phase 3 Simulation Complete. CSV Logged to reports/runtime_sensor_data.csv ===");
         $finish;
     end
 
