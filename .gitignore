@@ -1,0 +1,18 @@
+# Ignore Vivado build files, logs, and caches
+*.xpr
+*.log
+*.jou
+*.str
+.Xil/
+*.runs/
+*.cache/
+*.hw/
+*.sim/
+*.ip_user_files/
+*.gen/
+
+# Ignore generated bitstreams
+*.bit
+*.bin
+*.sysdef
+*.hdf
