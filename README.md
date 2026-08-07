@@ -46,48 +46,16 @@ LP-RTM addresses this security challenge through a four-phase hybrid methodology
 ### Detailed Framework Workflow
 
 ```mermaid
-flowchart TB
-    %% Styling Definitions
-    classDef phase1 fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
-    classDef phase2 fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-    classDef phase3 fill:#14532d,stroke:#4ade80,stroke-width:2px,color:#f8fafc;
-    classDef phase4 fill:#701a75,stroke:#f0abfc,stroke-width:2px,color:#f8fafc;
-    classDef artifact fill:#0f172a,stroke:#94a3b8,stroke-width:1px,stroke-dasharray: 4 4,color:#e2e8f0;
-
-    subgraph P1 ["Phase 1: RTL Datapath Core"]
-        A["IEEE 1364-2001 RTL Core<br/><code>top.v</code>"]:::phase1
-        A1["32-Bit AES-like Datapath & DFT Trigger Logic"]:::phase1
-    end
-
-    subgraph P2 ["Phase 2: Pre-Silicon Static Analysis"]
-        B["Functional 100 MHz Waveform<br/><code>sim_output.vcd</code>"]:::artifact
-        C["VCD Waveform Parser<br/><code>parse_rare_nets.py</code>"]:::phase2
-        D["Rare Nets Profile<br/><code>rare_nets_profile.json</code>"]:::artifact
-    end
-
-    subgraph P3 ["Phase 3: Targeted Hardware Monitoring"]
-        E["Integrated Monitored Wrapper<br/><code>top_monitored.v</code>"]:::phase3
-        F["5-Stage RO Delay Sensors<br/><code>ring_oscillator.v</code>"]:::phase3
-        G["Runtime Telemetry Log<br/><code>runtime_sensor_data.csv</code>"]:::artifact
-    end
-
-    subgraph P4 ["Phase 4: Machine Learning Anomaly Detection"]
-        H["ML Analytics Engine<br/><code>classify_trojans.py</code>"]:::phase4
-        I["Random Forest & Gradient Boosting Classifiers"]:::phase4
-        J["ML Classification Report & Model<br/><code>ml_classification_report.json</code> / <code>trained_model.pkl</code>"]:::artifact
-    end
-
-    %% Workflow Connections
-    A --> A1
-    A1 -->|"VCD Trace Generation"| B
-    B -->|"Signal Switching Analysis (P_s)"| C
-    C -->|"Filter Dormant Nets (P_s < 0.05)"| D
-    D -->|"Targeted Sensor Placement"| E
-    F -->|"Feedback Delay Loop Tap"| E
-    E -->|"Simulate Normal vs Trigger Telemetry"| G
-    G -->|"Feature Vector Construction"| H
-    H -->|"Stratified K-Fold Cross-Validation"| I
-    I -->|"Export Analytics & Model Binary"| J
+graph TD
+    A[RTL Datapath: top.v] -->|Simulate 100 MHz| B[VCD Trace: sim_output.vcd]
+    B -->|Parse Waveform| C[parse_rare_nets.py]
+    C -->|Identify Rare Nets P_s < 0.05| D[rare_nets_profile.json]
+    D -->|Targeted Sensor Placement| E[Monitored Core: top_monitored.v]
+    E -->|Instantiate RO Sensors| F[5-Stage Ring Oscillator: ring_oscillator.v]
+    E -->|Simulate Normal vs Trigger State| G[Telemetry Log: runtime_sensor_data.csv]
+    G -->|Feature Vector Construction| H[classify_trojans.py]
+    H -->|Train & Cross-Validate| I[Random Forest & Gradient Boosting Models]
+    I -->|Export Reports & Binary| J[ml_classification_report.json / trained_model.pkl]
 ```
 
 ---
