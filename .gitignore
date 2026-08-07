@@ -1,4 +1,6 @@
-# Ignore Vivado build files, logs, and caches
+# ==========================================
+# Vivado Auto-Generated Project Files & Caches
+# ==========================================
 *.xpr
 *.log
 *.jou
@@ -11,8 +13,42 @@
 *.ip_user_files/
 *.gen/
 
-# Ignore generated bitstreams
+# Output bitstreams and binary reports
 *.bit
 *.bin
 *.sysdef
 *.hdf
+
+# ==========================================
+# Simulation Outputs & Waveform Trace Dumps
+# ==========================================
+# Ignore large VCD waveform files generated during Phase 2/3
+*.vcd
+*.wdb
+*.vdb
+work/
+transcript
+
+# ==========================================
+# Benchmark Documentation & Non-Code Files
+# ==========================================
+# Ignores PDF documentation downloaded inside benchmark zips
+benchmarks/**/*.pdf
+benchmarks/**/*.doc*
+
+# ==========================================
+# Python & Machine Learning Caches (Phase 4)
+# ==========================================
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.pkl
+
+# ==========================================
+# System & Editor Caches
+# ==========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
