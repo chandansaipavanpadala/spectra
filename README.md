@@ -97,10 +97,10 @@ The core datapath module (`top`) is a 32-bit, multi-stage pipelined architecture
 
 #### Pipeline Operations:
 1. **Stage 1 (SubBytes & Key Addition):**
-   $$\text{s1\_sub\_bytes}[7:0] = (data\_in[7:0] \oplus key\_in[7:0]) \oplus 0x63$$
-   $$\text{s1\_sub\_bytes}[15:8] = (data\_in[15:8] \oplus key\_in[15:8]) \oplus 0x7C$$
-   $$\text{s1\_sub\_bytes}[23:16] = (data\_in[23:16] \oplus key\_in[23:16]) \oplus 0x77$$
-   $$\text{s1\_sub\_bytes}[31:24] = (data\_in[31:24] \oplus key\_in[31:24]) \oplus 0x7B$$
+   $$\text{s1\_sub\_bytes}[7:0] = (\text{data\_in}[7:0] \oplus \text{key\_in}[7:0]) \oplus \text{0x63}$$
+   $$\text{s1\_sub\_bytes}[15:8] = (\text{data\_in}[15:8] \oplus \text{key\_in}[15:8]) \oplus \text{0x7C}$$
+   $$\text{s1\_sub\_bytes}[23:16] = (\text{data\_in}[23:16] \oplus \text{key\_in}[23:16]) \oplus \text{0x77}$$
+   $$\text{s1\_sub\_bytes}[31:24] = (\text{data\_in}[31:24] \oplus \text{key\_in}[31:24]) \oplus \text{0x7B}$$
 
 2. **Stage 2 (ShiftRows Permutation):**
    Circular byte rotation shifting 32-bit words across byte boundaries:
@@ -108,15 +108,15 @@ The core datapath module (`top`) is a 32-bit, multi-stage pipelined architecture
 
 3. **Stage 3 (MixColumns Linear Combination):**
    Linear XOR feedback transformation across byte channels:
-   $$\text{s3\_mix\_columns}[7:0] = \text{stage2\_data}[7:0] \oplus \text{stage2\_data}[15:8] \oplus 0x1F$$
-   $$\text{s3\_mix\_columns}[15:8] = \text{stage2\_data}[15:8] \oplus \text{stage2\_data}[23:16] \oplus 0x3D$$
-   $$\text{s3\_mix\_columns}[23:16] = \text{stage2\_data}[23:16] \oplus \text{stage2\_data}[31:24] \oplus 0x5A$$
-   $$\text{s3\_mix\_columns}[31:24] = \text{stage2\_data}[31:24] \oplus \text{stage2\_data}[7:0] \oplus 0x79$$
+   $$\text{s3\_mix\_columns}[7:0] = \text{stage2\_data}[7:0] \oplus \text{stage2\_data}[15:8] \oplus \text{0x1F}$$
+   $$\text{s3\_mix\_columns}[15:8] = \text{stage2\_data}[15:8] \oplus \text{stage2\_data}[23:16] \oplus \text{0x3D}$$
+   $$\text{s3\_mix\_columns}[23:16] = \text{stage2\_data}[23:16] \oplus \text{stage2\_data}[31:24] \oplus \text{0x5A}$$
+   $$\text{s3\_mix\_columns}[31:24] = \text{stage2\_data}[31:24] \oplus \text{stage2\_data}[7:0] \oplus \text{0x79}$$
 
 4. **DFT / Corner-Case Trigger Logic:**
    - Trigger Condition: `test_mode == 1` AND `data_in == 32'hA5A5_5A5A`
    - Active Payload: Asserts `corner_case_flag = 1` and inverts bit 0 of `data_out`:
-     $$data\_out = \{\text{stage3\_data}[31:1], \sim\text{stage3\_data}[0]\}$$
+     $$\text{data\_out} = \{\text{stage3\_data}[31:1], \sim\text{stage3\_data}[0]\}$$
    - Inactive State: `corner_case_flag = 0`, `data_out = stage3_data`.
 
 ---
@@ -127,14 +127,14 @@ The pre-silicon static rare net extractor parses IEEE 1364-2001 Value Change Dum
 
 ### Mathematical Formulation
 
-The switching probability ($P_s$) for an internal net $i$ of bit width $S_i$ across simulation clock cycles $N_{clk}$ is calculated as:
+The switching probability ($P_s$) for an internal net $i$ of bit width $S_i$ across simulation clock cycles $N_{\text{clk}}$ is calculated as:
 
-$$P_s(i) = \frac{T_c(i)}{S_i \times N_{clk}}$$
+$$P_s(i) = \frac{T_c(i)}{S_i \times N_{\text{clk}}}$$
 
 Where:
 - $T_c(i)$ is the cumulative count of 0-to-1 and 1-to-0 bit transitions recorded for net $i$.
 - $S_i$ is the bit size of the signal vector ($S_i = 1$ for scalar nets).
-- $N_{clk}$ is the total number of rising clock edges observed during the simulation window.
+- $N_{\text{clk}}$ is the total number of rising clock edges observed during the simulation window.
 
 A net $i$ is classified as a **High-Risk Rare Net** if:
 
@@ -178,11 +178,11 @@ python scripts/parse_rare_nets.py --vcd reports/sim_output.vcd --threshold 0.05 
 
 ### 5.1 Ring Oscillator Delay Sensor (`ring_oscillator.v`)
 
-Physical delay monitoring is performed using on-chip Ring Oscillator (RO) sensors. An RO consists of an odd number of inverting stages arranged in a feedback loop. The natural oscillation frequency $f_{RO}$ depends directly on the propagation delay $\tau_d$ of the constituent logic gates and interconnect paths:
+Physical delay monitoring is performed using on-chip Ring Oscillator (RO) sensors. An RO consists of an odd number of inverting stages arranged in a feedback loop. The natural oscillation frequency $f_{\text{RO}}$ depends directly on the propagation delay $\tau_d$ of the constituent logic gates and interconnect paths:
 
-$$f_{RO} = \frac{1}{2 \times N_{stages} \times \tau_d}$$
+$$f_{\text{RO}} = \frac{1}{2 \times N_{\text{stages}} \times \tau_d}$$
 
-When a rare net or corner-case trigger logic activates, local capacitive loading and power supply noise introduce a localized propagation delay shift ($\Delta \tau_d$), resulting in a measurable frequency drop ($\Delta f_{RO}$).
+When a rare net or corner-case trigger logic activates, local capacitive loading and power supply noise introduce a localized propagation delay shift ($\Delta \tau_d$), resulting in a measurable frequency drop ($\Delta f_{\text{RO}}$).
 
 ```
 +-------------------------------------------------------------------------------+
@@ -277,7 +277,7 @@ Phase 4 fuses pre-silicon rare net metadata with post-silicon / runtime sensor t
 
 For every sampled clock timestamp, a 4-dimensional feature vector $\mathbf{x} \in \mathbb{R}^4$ is constructed:
 
-$$\mathbf{x} = \begin{bmatrix} \text{ro1\_freq} \\ \text{ro2\_freq} \\ \text{freq\_delta} \\ \text{frequency\_ratio} \end{bmatrix} = \begin{bmatrix} f_{RO1} \\ f_{RO2} \\ |f_{RO1} - f_{RO2}| \\ \frac{f_{RO2}}{f_{RO1} + \epsilon} \end{bmatrix}$$
+$$\mathbf{x} = \begin{bmatrix} \text{ro1\_freq} \\ \text{ro2\_freq} \\ \text{freq\_delta} \\ \text{frequency\_ratio} \end{bmatrix} = \begin{bmatrix} f_{\text{RO1}} \\ f_{\text{RO2}} \\ |f_{\text{RO1}} - f_{\text{RO2}}| \\ \frac{f_{\text{RO2}}}{f_{\text{RO1}} + \epsilon} \end{bmatrix}$$
 
 Ground-truth binary labels $y \in \{0, 1\}$ are assigned as:
 
@@ -288,11 +288,11 @@ $$y = \begin{cases} 0, & \text{Normal Operation } (\text{test\_mode} = 0) \\ 1, 
 - **Classifiers Evaluated:** Random Forest Classifier (`n_estimators=100`, `random_state=42`) and Gradient Boosting Classifier (`n_estimators=100`, `random_state=42`).
 - **Data Partitioning:** 80% Training / 20% Testing split with Stratified 5-Fold Cross-Validation.
 - **Evaluation Metrics:**
-  $$\text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}$$
-  $$\text{Precision} = \frac{TP}{TP + FP}$$
-  $$\text{Recall} = \frac{TP}{TP + FN}$$
+  $$\text{Accuracy} = \frac{\text{TP} + \text{TN}}{\text{TP} + \text{TN} + \text{FP} + \text{FN}}$$
+  $$\text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}$$
+  $$\text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$
   $$\text{F1-Score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
-  $$\text{FPR} = \frac{FP}{FP + TN}$$
+  $$\text{FPR} = \frac{\text{FP}}{\text{FP} + \text{TN}}$$
 
 ### 6.3 Script Execution
 
