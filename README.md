@@ -268,10 +268,15 @@ lp-rtm/
 │   ├── classify_trojans_feature_importance.png     # Feature importance bar chart
 │   ├── inject_pvt_noise_telemetry_waveforms.png    # Clean vs noisy RO waveform chart
 │   ├── parse_rare_nets_activity_distribution.png   # Rare net switching activity plot
-│   └── run_benchmark_suite_performance_matrix.png # Benchmark evaluation matrix plot
+│   ├── run_benchmark_suite_performance_matrix.png # Benchmark evaluation matrix plot
+│   ├── schematic_elaborated_top_monitored.pdf     # Direct vector RTL Elaborated Schematic PDF
+│   ├── schematic_elaborated_top_monitored.png     # RTL Elaborated Schematic image
+│   ├── waveform_behavioral_simulation.pdf         # Direct vector Behavioral Simulation Waveform PDF
+│   └── waveform_behavioral_simulation.png          # Behavioral Simulation Waveform image
 ├── scripts/
 │   ├── classify_trojans.py         # Phase 4 ML anomaly classification script
 │   ├── export_screenshots.tcl      # Vivado screenshot & schematic export automation script
+│   ├── export_visuals.py           # Direct vector PDF & visual export script
 │   ├── inject_pvt_noise.py         # PVT environmental noise simulation script
 │   ├── instrument_sensors.py       # Automated RO placement instrumentation script
 │   ├── parse_rare_nets.py          # Phase 2 VCD rare net parsing script

@@ -39,19 +39,19 @@
   },
   "feature_importance": [
     {
-      "feature": "ro1_freq",
-      "importance": 0.485
-    },
-    {
       "feature": "ro2_freq",
-      "importance": 0.485
-    },
-    {
-      "feature": "frequency_ratio",
-      "importance": 0.03
+      "importance": 0.39
     },
     {
       "feature": "freq_delta",
+      "importance": 0.33
+    },
+    {
+      "feature": "frequency_ratio",
+      "importance": 0.28
+    },
+    {
+      "feature": "ro1_freq",
       "importance": 0.0
     }
   ]

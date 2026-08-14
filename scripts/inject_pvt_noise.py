@@ -193,7 +193,7 @@ def main():
         "--vdd-drift",
         type=float,
         default=0.05,
-        help="Maximum Vdd supply voltage drift percentage (default: 0.05 -> +-5%)"
+        help="Maximum Vdd supply voltage drift percentage (default: 0.05 -> +-5%%)"
     )
     parser.add_argument(
         "--thermal-jitter",

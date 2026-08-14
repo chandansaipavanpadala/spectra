@@ -15,10 +15,10 @@
       "cv_accuracy_mean": 1.0,
       "cv_accuracy_std": 0.0,
       "confusion_matrix": {
-        "TN": 10,
+        "TN": 11,
         "FP": 0,
         "FN": 0,
-        "TP": 3
+        "TP": 2
       }
     },
     "gradient_boosting": {
@@ -30,29 +30,29 @@
       "cv_accuracy_mean": 1.0,
       "cv_accuracy_std": 0.0,
       "confusion_matrix": {
-        "TN": 10,
+        "TN": 11,
         "FP": 0,
         "FN": 0,
-        "TP": 3
+        "TP": 2
       }
     }
   },
   "feature_importance": [
     {
-      "feature": "ro1_freq",
-      "importance": 0.485
-    },
-    {
       "feature": "ro2_freq",
-      "importance": 0.485
+      "importance": 0.4977
     },
     {
-      "feature": "frequency_ratio",
-      "importance": 0.03
+      "feature": "ro1_freq",
+      "importance": 0.4805
     },
     {
       "feature": "freq_delta",
-      "importance": 0.0
+      "importance": 0.0167
+    },
+    {
+      "feature": "frequency_ratio",
+      "importance": 0.0051
     }
   ]
 }
