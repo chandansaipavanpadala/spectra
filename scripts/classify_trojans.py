@@ -5,9 +5,8 @@ Script: classify_trojans.py
 Description: ML classification engine fusing pre-silicon rare net profiles with
              Phase 3 runtime RO sensor telemetry to detect dynamic hardware anomalies.
              Trains Random Forest & Classifier models, evaluates metrics, and exports
-             classification reports & model binaries.
-             Supports scikit-learn/pandas with zero-dependency stdlib fallback.
-IEEE 1364-2001 & ML Hardware Security Analytics Engine
+             classification reports, model binaries, and visualization plots directly
+             into the screenshots/ directory.
 ==================================================================================
 """
 
@@ -33,6 +32,12 @@ try:
     HAS_DS_LIBS = True
 except ImportError:
     HAS_DS_LIBS = False
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 
 # ==============================================================================
@@ -190,7 +195,102 @@ def load_telemetry_and_profile(csv_path: Path, json_path: Path):
     return data, rare_nets_info
 
 
-def run_sklearn_pipeline(data, rare_nets_info, report_output_path, model_output_path):
+def export_classification_screenshots(rf_res, fi_list, screenshots_dir: Path):
+    """
+    Export Confusion Matrix and Feature Importance plots directly to screenshots/ folder.
+    """
+    if not HAS_PIL:
+        return
+
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Confusion Matrix PNG
+    cm_file = screenshots_dir / "classify_trojans_confusion_matrix.png"
+    cm_w, cm_h = 800, 600
+    img_cm = Image.new("RGB", (cm_w, cm_h), "#1E1E2E")
+    draw_cm = ImageDraw.Draw(img_cm)
+
+    draw_cm.rectangle([0, 0, cm_w, 80], fill="#181825")
+    draw_cm.text((40, 20), "HARDWARE TROJAN ANOMALY DETECTOR: CONFUSION MATRIX", fill="#F5E0DC", font_size=20)
+    draw_cm.text((40, 50), f"Random Forest Model Accuracy: {rf_res['accuracy']*100:.1f}% | Precision: {rf_res['precision']*100:.1f}%", fill="#BAC2DE", font_size=13)
+
+    cm_data = rf_res["confusion_matrix"]
+    tn, fp, fn, tp = cm_data["TN"], cm_data["FP"], cm_data["FN"], cm_data["TP"]
+
+    cell_w, cell_h = 240, 160
+    grid_x, grid_y = 220, 150
+
+    # Grid Cell TN
+    draw_cm.rectangle([grid_x, grid_y, grid_x + cell_w, grid_y + cell_h], fill="#313244", outline="#89B4FA", width=3)
+    draw_cm.text((grid_x + 20, grid_y + 20), "TRUE NEGATIVE (TN)", fill="#A6ADC8", font_size=14)
+    draw_cm.text((grid_x + 90, grid_y + 70), str(tn), fill="#A6E3A1", font_size=36)
+
+    # Grid Cell FP
+    draw_cm.rectangle([grid_x + cell_w + 20, grid_y, grid_x + 2*cell_w + 20, grid_y + cell_h], fill="#313244", outline="#F38BA8", width=3)
+    draw_cm.text((grid_x + cell_w + 40, grid_y + 20), "FALSE POSITIVE (FP)", fill="#A6ADC8", font_size=14)
+    draw_cm.text((grid_x + cell_w + 110, grid_y + 70), str(fp), fill="#F38BA8", font_size=36)
+
+    # Grid Cell FN
+    draw_cm.rectangle([grid_x, grid_y + cell_h + 20, grid_x + cell_w, grid_y + 2*cell_h + 20], fill="#313244", outline="#F38BA8", width=3)
+    draw_cm.text((grid_x + 20, grid_y + cell_h + 40), "FALSE NEGATIVE (FN)", fill="#A6ADC8", font_size=14)
+    draw_cm.text((grid_x + 90, grid_y + cell_h + 90), str(fn), fill="#F38BA8", font_size=36)
+
+    # Grid Cell TP
+    draw_cm.rectangle([grid_x + cell_w + 20, grid_y + cell_h + 20, grid_x + 2*cell_w + 20, grid_y + 2*cell_h + 20], fill="#313244", outline="#89B4FA", width=3)
+    draw_cm.text((grid_x + cell_w + 40, grid_y + cell_h + 40), "TRUE POSITIVE (TP)", fill="#A6ADC8", font_size=14)
+    draw_cm.text((grid_x + cell_w + 110, grid_y + cell_h + 90), str(tp), fill="#89B4FA", font_size=36)
+
+    # Axis Labels
+    draw_cm.text((60, grid_y + 70), "Actual Normal (0)", fill="#CDD6F4", font_size=14)
+    draw_cm.text((60, grid_y + cell_h + 90), "Actual Trojan (1)", fill="#CDD6F4", font_size=14)
+
+    draw_cm.text((grid_x + 50, grid_y - 30), "Predicted Normal (0)", fill="#CDD6F4", font_size=14)
+    draw_cm.text((grid_x + cell_w + 70, grid_y - 30), "Predicted Trojan (1)", fill="#CDD6F4", font_size=14)
+
+    img_cm.save(cm_file, "PNG", dpi=(300, 300))
+    print(f"[+] Saved Confusion Matrix plot to: {cm_file}")
+
+    # 2. Feature Importance PNG
+    fi_file = screenshots_dir / "classify_trojans_feature_importance.png"
+    fi_w, fi_h = 900, 550
+    img_fi = Image.new("RGB", (fi_w, fi_h), "#1E1E2E")
+    draw_fi = ImageDraw.Draw(img_fi)
+
+    draw_fi.rectangle([0, 0, fi_w, 80], fill="#181825")
+    draw_fi.text((40, 20), "MODEL FEATURE IMPORTANCE RANKINGS", fill="#F5E0DC", font_size=22)
+    draw_fi.text((40, 50), "Random Forest Feature Weights for Trojan Anomaly Detection", fill="#BAC2DE", font_size=13)
+
+    chart_x, chart_y = 60, 110
+    chart_w, chart_h = 780, 380
+    draw_fi.rectangle([chart_x, chart_y, chart_x + chart_w, chart_y + chart_h], fill="#181825", outline="#45475A", width=2)
+
+    bar_h = 45
+    gap = 25
+    max_imp = max((item["importance"] for item in fi_list), default=1.0)
+    max_imp = max(0.5, max_imp)
+
+    for i, item in enumerate(fi_list):
+        curr_y = chart_y + 30 + i * (bar_h + gap)
+        if curr_y + bar_h > chart_y + chart_h:
+            break
+
+        draw_fi.text((chart_x + 20, curr_y + 12), f"{item['feature']:<18}", fill="#CDD6F4", font_size=14)
+
+        bar_start_x = chart_x + 220
+        max_bar_w = 420
+        w_px = int((item["importance"] / max_imp) * max_bar_w)
+
+        colors = ["#89B4FA", "#F5C2E7", "#94E2D5", "#FAB387"]
+        bar_color = colors[i % len(colors)]
+
+        draw_fi.rectangle([bar_start_x, curr_y, bar_start_x + max(6, w_px), curr_y + bar_h], fill=bar_color)
+        draw_fi.text((bar_start_x + w_px + 15, curr_y + 12), f"{item['importance']:.4f}", fill="#BAC2DE", font_size=14)
+
+    img_fi.save(fi_file, "PNG", dpi=(300, 300))
+    print(f"[+] Saved Feature Importance plot to: {fi_file}")
+
+
+def run_sklearn_pipeline(data, rare_nets_info, report_output_path, model_output_path, screenshots_dir):
     """
     Run pipeline using pandas and scikit-learn.
     """
@@ -278,9 +378,10 @@ def run_sklearn_pipeline(data, rare_nets_info, report_output_path, model_output_
         json.dump(report_data, f, indent=2)
 
     print_report(total_samples, normal_samples, anomalous_samples, rare_nets_count, rf_res, gb_res, fi_list, report_output_path, model_output_path)
+    export_classification_screenshots(rf_res, fi_list, screenshots_dir)
 
 
-def run_stdlib_pipeline(data, rare_nets_info, report_output_path, model_output_path):
+def run_stdlib_pipeline(data, rare_nets_info, report_output_path, model_output_path, screenshots_dir):
     """
     Run pipeline using pure Python standard library with stratified random shuffling.
     """
@@ -383,6 +484,7 @@ def run_stdlib_pipeline(data, rare_nets_info, report_output_path, model_output_p
         json.dump(report_data, f, indent=2)
 
     print_report(total_samples, normal_samples, anomalous_samples, rare_nets_count, rf_res, gb_res, fi_list, report_output_path, model_output_path)
+    export_classification_screenshots(rf_res, fi_list, screenshots_dir)
 
 
 def print_report(total_samples, normal_samples, anomalous_samples, rare_nets_count, rf_res, gb_res, fi_list, report_output_path, model_output_path):
@@ -460,6 +562,7 @@ def main():
     json_path = Path(args.json)
     report_output_path = Path(args.output_report)
     model_output_path = Path(args.output_model)
+    screenshots_dir = Path("screenshots")
 
     print(f"[+] Loading runtime telemetry: {csv_path}")
     print(f"[+] Fusing pre-silicon profile: {json_path}")
@@ -467,10 +570,10 @@ def main():
 
     if HAS_DS_LIBS:
         print("[+] Executing via scikit-learn & pandas ML backend...")
-        run_sklearn_pipeline(data, rare_nets_info, report_output_path, model_output_path)
+        run_sklearn_pipeline(data, rare_nets_info, report_output_path, model_output_path, screenshots_dir)
     else:
         print("[+] Executing via zero-dependency Python ML backend...")
-        run_stdlib_pipeline(data, rare_nets_info, report_output_path, model_output_path)
+        run_stdlib_pipeline(data, rare_nets_info, report_output_path, model_output_path, screenshots_dir)
 
 
 if __name__ == "__main__":

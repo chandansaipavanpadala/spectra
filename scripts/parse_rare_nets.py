@@ -3,17 +3,25 @@
 ==================================================================================
 Script: parse_rare_nets.py
 Description: Parses VCD simulation waveform traces to extract signal switching
-             activity, calculates switching probabilities (P_s), and flags
-             High-Risk Rare Nets (P_s < threshold) for hardware security analysis.
+             activity, calculates switching probabilities (P_s), flags High-Risk
+             Rare Nets (P_s < threshold), and exports summary visualization plots
+             directly into the screenshots/ directory.
 IEEE 1364-2001 VCD Trace Parser for Pre-Silicon Security & Side-Channel Analysis
 ==================================================================================
 """
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 
 def parse_vcd(vcd_path: Path):
@@ -161,6 +169,91 @@ def analyze_switching_activity(id_to_info, id_to_toggles, total_cycles, threshol
     return net_stats
 
 
+def export_screenshot_plot(net_stats, threshold, total_cycles, screenshots_dir: Path):
+    """
+    Export switching activity distribution plot directly into screenshots/ directory.
+    """
+    if not HAS_PIL:
+        return
+
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+    out_file = screenshots_dir / "parse_rare_nets_activity_distribution.png"
+
+    # Image canvas dimensions
+    width, height = 1200, 750
+    img = Image.new("RGB", (width, height), "#1E1E2E")
+    draw = ImageDraw.Draw(img)
+
+    # Title & Subtitle Header
+    draw.rectangle([0, 0, width, 80], fill="#181825")
+    draw.text((40, 20), "VCD SIGNAL SWITCHING ACTIVITY & RARE NET DISTRIBUTION", fill="#F5E0DC", font_size=24)
+    draw.text((40, 50), f"Simulation Scope: {total_cycles} Cycles | Rare Threshold: P_s < {threshold}", fill="#BAC2DE", font_size=14)
+
+    # Summary Stats Cards
+    total_nets = len(net_stats)
+    rare_count = sum(1 for n in net_stats if n["is_rare"])
+
+    # Draw Summary Card 1
+    draw.rectangle([40, 100, 380, 160], fill="#313244", outline="#45475A", width=2)
+    draw.text((60, 110), "TOTAL ANALYZED NETS", fill="#A6ADC8", font_size=12)
+    draw.text((60, 128), str(total_nets), fill="#89B4FA", font_size=24)
+
+    # Draw Summary Card 2
+    draw.rectangle([420, 100, 760, 160], fill="#313244", outline="#45475A", width=2)
+    draw.text((440, 110), "HIGH-RISK RARE NETS (P_s < 0.05)", fill="#A6ADC8", font_size=12)
+    draw.text((440, 128), f"{rare_count} ({rare_count/max(1,total_nets)*100:.1f}%)", fill="#F38BA8", font_size=24)
+
+    # Draw Summary Card 3
+    draw.rectangle([800, 100, 1140, 160], fill="#313244", outline="#45475A", width=2)
+    draw.text((820, 110), "NORMAL SWITCHING NETS", fill="#A6ADC8", font_size=12)
+    draw.text((820, 128), str(total_nets - rare_count), fill="#A6E3A1", font_size=24)
+
+    # Plot Bar Chart: Top 15 Nets
+    sorted_nets = sorted(net_stats, key=lambda x: x["switching_prob"], reverse=True)[:15]
+
+    chart_x, chart_y = 60, 210
+    chart_w, chart_h = 1080, 480
+    draw.rectangle([chart_x, chart_y, chart_x + chart_w, chart_y + chart_h], fill="#181825", outline="#45475A", width=2)
+
+    max_prob = max((n["switching_prob"] for n in sorted_nets), default=1.0)
+    max_prob = max(max_prob, threshold * 2)
+
+    bar_height = 24
+    gap = 8
+    start_y = chart_y + 20
+
+    for i, net in enumerate(sorted_nets):
+        curr_y = start_y + i * (bar_height + gap)
+        if curr_y + bar_height > chart_y + chart_h - 10:
+            break
+
+        # Net label
+        short_name = net["net_name"].split(".")[-1][:32]
+        draw.text((chart_x + 10, curr_y + 4), short_name, fill="#CDD6F4", font_size=12)
+
+        # Bar rendering
+        bar_x_start = chart_x + 280
+        max_bar_width = 650
+        val_ratio = min(1.0, net["switching_prob"] / max_prob)
+        bar_w = int(val_ratio * max_bar_width)
+
+        bar_color = "#F38BA8" if net["is_rare"] else "#89B4FA"
+        draw.rectangle([bar_x_start, curr_y, bar_x_start + max(4, bar_w), curr_y + bar_height], fill=bar_color)
+
+        # Value text
+        prob_str = f"P_s = {net['switching_prob']:.4f}"
+        draw.text((bar_x_start + bar_w + 10, curr_y + 4), prob_str, fill="#BAC2DE", font_size=12)
+
+    # Threshold Line
+    thresh_x = chart_x + 280 + int((threshold / max_prob) * 650)
+    if chart_x + 280 <= thresh_x <= chart_x + 280 + 650:
+        draw.line([thresh_x, chart_y + 10, thresh_x, chart_y + chart_h - 10], fill="#FAB387", width=2)
+        draw.text((thresh_x - 40, chart_y + chart_h - 25), f"Thresh ({threshold})", fill="#FAB387", font_size=11)
+
+    img.save(out_file, "PNG", dpi=(300, 300))
+    print(f"[+] Saved visualization plot to: {out_file}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="VCD Trace Rare-Net Parser & Switching Activity Analyzer"
@@ -188,6 +281,7 @@ def main():
 
     vcd_path = Path(args.vcd)
     output_path = Path(args.output)
+    screenshots_dir = Path("screenshots")
 
     if not vcd_path.exists():
         print(f"[-] Error: Input VCD file '{vcd_path}' not found.", file=sys.stderr)
@@ -256,6 +350,9 @@ def main():
         json.dump(json_output, f, indent=2)
 
     print(f"[+] Rare nets profile successfully exported to: {output_path}")
+
+    # Export Visualization Plot directly to screenshots/
+    export_screenshot_plot(net_stats, args.threshold, total_cycles, screenshots_dir)
 
 
 if __name__ == "__main__":

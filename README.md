@@ -263,8 +263,15 @@ lp-rtm/
 │   ├── runtime_sensor_data_pvt.csv   # PVT noise-injected telemetry log
 │   ├── sim_output.vcd              # VCD waveform trace file
 │   └── trained_model.pkl           # Exported trained Random Forest binary model
+├── screenshots/
+│   ├── classify_trojans_confusion_matrix.png       # Confusion matrix visualization
+│   ├── classify_trojans_feature_importance.png     # Feature importance bar chart
+│   ├── inject_pvt_noise_telemetry_waveforms.png    # Clean vs noisy RO waveform chart
+│   ├── parse_rare_nets_activity_distribution.png   # Rare net switching activity plot
+│   └── run_benchmark_suite_performance_matrix.png # Benchmark evaluation matrix plot
 ├── scripts/
 │   ├── classify_trojans.py         # Phase 4 ML anomaly classification script
+│   ├── export_screenshots.tcl      # Vivado screenshot & schematic export automation script
 │   ├── inject_pvt_noise.py         # PVT environmental noise simulation script
 │   ├── instrument_sensors.py       # Automated RO placement instrumentation script
 │   ├── parse_rare_nets.py          # Phase 2 VCD rare net parsing script

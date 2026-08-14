@@ -4,8 +4,9 @@
 Script: run_benchmark_suite.py
 Description: Master Automation Suite for Multi-Benchmark Hardware Trojan Evaluation.
              Iterates across benchmark suites (AES-T100 to AES-T1000), runs pre-silicon
-             rare net profiling, evaluates ML classification performance, and collates
-             results into a Markdown summary table and JSON database.
+             rare net profiling, evaluates ML classification performance, collates
+             results into JSON database, and exports performance matrix plots directly
+             into the screenshots/ directory.
 Hardware Security Trust Benchmark Automation Platform
 ==================================================================================
 """
@@ -17,6 +18,12 @@ import random
 import subprocess
 import sys
 from pathlib import Path
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 
 BENCHMARKS_CONFIG = [
@@ -155,6 +162,65 @@ def run_benchmark_eval(b_config: dict, benchmark_base_dir: Path, py_exe: str):
     }
 
 
+def export_benchmark_suite_screenshots(suite_results, screenshots_dir: Path):
+    """
+    Export benchmark performance matrix plot directly to screenshots/ directory.
+    """
+    if not HAS_PIL:
+        return
+
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+    out_file = screenshots_dir / "run_benchmark_suite_performance_matrix.png"
+
+    width, height = 1150, 650
+    img = Image.new("RGB", (width, height), "#1E1E2E")
+    draw = ImageDraw.Draw(img)
+
+    # Header
+    draw.rectangle([0, 0, width, 80], fill="#181825")
+    draw.text((40, 20), "MASTER BENCHMARK SUITE PERFORMANCE MATRIX", fill="#F5E0DC", font_size=22)
+    draw.text((40, 50), f"Evaluated Trust Benchmarks: {len(suite_results)} Circuits (AES-T100 to AES-T1000)", fill="#BAC2DE", font_size=13)
+
+    # Summary Table Canvas
+    table_x, table_y = 50, 110
+    table_w, table_h = 1050, 480
+    draw.rectangle([table_x, table_y, table_x + table_w, table_y + table_h], fill="#181825", outline="#45475A", width=2)
+
+    # Table Header Row
+    header_y = table_y + 10
+    draw.rectangle([table_x + 10, header_y, table_x + table_w - 10, header_y + 40], fill="#313244")
+
+    headers = [("Benchmark", 30), ("Trigger Mechanism", 200), ("Rare Nets", 540), ("Accuracy", 680), ("Precision", 800), ("FPR", 940)]
+    for h_text, h_pos in headers:
+        draw.text((table_x + h_pos, header_y + 10), h_text, fill="#F5C2E7", font_size=13)
+
+    # Data Rows
+    row_h = 65
+    for i, r in enumerate(suite_results):
+        curr_y = header_y + 50 + i * row_h
+        if curr_y + row_h > table_y + table_h:
+            break
+
+        bg_col = "#1E1E2E" if i % 2 == 0 else "#181825"
+        draw.rectangle([table_x + 10, curr_y, table_x + table_w - 10, curr_y + row_h - 5], fill=bg_col)
+
+        draw.text((table_x + 30, curr_y + 20), r["benchmark_name"], fill="#89B4FA", font_size=15)
+        draw.text((table_x + 200, curr_y + 20), r["trigger_type"][:36], fill="#CDD6F4", font_size=12)
+        draw.text((table_x + 550, curr_y + 20), str(r["rare_nets_found"]), fill="#BAC2DE", font_size=14)
+
+        acc_str = f"{r['model_accuracy']*100:.1f}%"
+        draw.text((table_x + 680, curr_y + 20), acc_str, fill="#A6E3A1", font_size=14)
+
+        prec_str = f"{r['precision']*100:.1f}%"
+        draw.text((table_x + 800, curr_y + 20), prec_str, fill="#A6E3A1", font_size=14)
+
+        fpr_str = f"{r['false_positive_rate']*100:.1f}%"
+        draw.text((table_x + 940, curr_y + 20), fpr_str, fill="#A6E3A1" if r['false_positive_rate'] == 0 else "#F38BA8", font_size=14)
+
+    img.save(out_file, "PNG", dpi=(300, 300))
+    print(f"[+] Saved Benchmark Performance Matrix plot to: {out_file}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Master Benchmarking Automation Suite for Hardware Trojan Classification"
@@ -176,6 +242,7 @@ def main():
 
     benchmarks_dir = Path(args.benchmarks_dir)
     output_path = Path(args.output)
+    screenshots_dir = Path("screenshots")
     py_exe = sys.executable
 
     print(f"[+] Starting Master Benchmark Automation Suite...")
@@ -212,6 +279,9 @@ def main():
     print("\n".join(markdown_table))
     print("\n" + "=" * 90)
     print(f"[+] Unified benchmark suite results exported to: {output_path}\n")
+
+    # Export Visualization Matrix directly to screenshots/
+    export_benchmark_suite_screenshots(suite_results, screenshots_dir)
 
 
 if __name__ == "__main__":
