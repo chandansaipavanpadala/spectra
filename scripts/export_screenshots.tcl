@@ -1,7 +1,7 @@
 # ==============================================================================
 # Script: export_screenshots.tcl
-# Description: Automated Vivado script to run elaboration, simulation, and
-#              export schematic and waveform images to the screenshots/ folder.
+# Description: Automated Vivado script to load sources, run elaboration,
+#              simulation, and export schematic and waveform images.
 # ==============================================================================
 
 # Step 1: Ensure the screenshots directory exists
@@ -13,39 +13,45 @@ if {![file exists $screenshot_dir]} {
     puts "\[+\] Output directory exists: $screenshot_dir"
 }
 
-# Step 2: Ensure Vivado Project is Open or Recreated
-if {[current_project -quiet] eq ""} {
-    if {[file exists "./lp_rtm/lp_rtm.xpr"]} {
-        puts "\[+\] Opening existing Vivado project: ./lp_rtm/lp_rtm.xpr"
-        catch { open_project ./lp_rtm/lp_rtm.xpr }
-    }
-    
-    if {[current_project -quiet] eq ""} {
-        puts "\[+\] Recreating Vivado project using recreate_project.tcl..."
-        catch { source scripts/recreate_project.tcl }
-    }
-    
-    if {[current_project -quiet] eq ""} {
-        puts "\[+\] Creating in-memory project for standalone elaboration..."
-        create_project -force temp_proj ./temp_proj -part xc7a200tfbg676-2
-        set v_files [glob -nocomplain ./lp_rtm.srcs/sources_1/new/*.v]
-        if {[llength $v_files] > 0} {
-            add_files -fileset sources_1 $v_files
-        }
-    }
+# Step 2: Close stale projects and create clean in-memory project instance
+if {[current_project -quiet] ne ""} {
+    close_project -quiet
 }
 
-# Set top module for synthesis & simulation
-catch { set_property top top_monitored [get_filesets sources_1] }
+puts "\[+\] Creating fresh Vivado project instance..."
+create_project -force lp_rtm ./lp_rtm -part xc7a200tfbg676-2
+
+# Add all Verilog sources from lp_rtm.srcs/sources_1/new
+set v_files [glob -nocomplain ./lp_rtm.srcs/sources_1/new/*.v]
+if {[llength $v_files] > 0} {
+    add_files -fileset sources_1 $v_files
+    puts "\[+\] Added [llength $v_files] Verilog source files to project."
+} else {
+    puts "\[!\] Warning: No Verilog files found in ./lp_rtm.srcs/sources_1/new"
+}
+
+# Add constraint files
+set xdc_files [glob -nocomplain ./lp_rtm.srcs/constrs_1/new/*.xdc]
+if {[llength $xdc_files] > 0} {
+    add_files -norecurse -fileset constrs_1 $xdc_files
+}
+
+# Set top modules for synthesis & simulation
+set_property top top_monitored [get_filesets sources_1]
+set_property top tb_top [get_filesets sim_1]
+update_compile_order -fileset sources_1
+update_compile_order -fileset sim_1
 
 # Step 3: Open and Export RTL Elaborated Schematic
-puts "\[+\] Elaborating design to capture RTL Schematic..."
-catch {
-    synth_design -rtl -name rtl_1 -top top_monitored
-    write_schematic -format png -force "$screenshot_dir/schematic_elaborated_top_monitored.png"
-    puts "\[+\] Saved: $screenshot_dir/schematic_elaborated_top_monitored.png"
-    close_design
-}
+puts "\[+\] Elaborating design 'top_monitored' to capture RTL Schematic..."
+synth_design -rtl -name rtl_1 -top top_monitored
+
+# Export full elaborated schematic image
+write_schematic -format png -force "$screenshot_dir/schematic_elaborated_top_monitored.png"
+puts "\[+\] Saved: $screenshot_dir/schematic_elaborated_top_monitored.png"
+
+# Close elaboration view
+close_design
 
 # Step 4: Run Behavioral Simulation & Capture Waveform
 puts "\[+\] Launching Behavioral Simulation..."
@@ -56,17 +62,29 @@ if {[get_sims sim_1] ne ""} {
 }
 
 # Launch simulation
+launch_simulation -simset sim_1 -mode behavioral
+
+# Add all signals to waveform viewer
+add_wave /
+
+# Run simulation for testbench duration
+run 1000ns
+
+# Zoom to fit the entire waveform display
 catch {
-    launch_simulation -simset sim_1 -mode behavioral
-    add_wave /
-    run 1000ns
     current_wave_config
     wave_zoom -fit
+}
+
+# Export the waveform viewer window to PNG image
+catch {
     export_wave_image -format png -file "$screenshot_dir/waveform_behavioral_simulation.png" -force
     puts "\[+\] Saved: $screenshot_dir/waveform_behavioral_simulation.png"
-    close_sim
-    puts "\[+\] Simulation completed and closed successfully."
 }
+
+# Close simulation cleanly to flush VCD and logs
+close_sim
+puts "\[+\] Simulation completed and closed successfully."
 
 puts "=============================================================================="
 puts "\[+\] All schematics and waveforms successfully exported to $screenshot_dir/"
