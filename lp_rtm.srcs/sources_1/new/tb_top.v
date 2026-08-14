@@ -59,7 +59,10 @@ module tb_top;
     // Test Sequence & CSV Reporting
     initial begin
         // Open CSV Report file and write header
-        f_csv = $fopen("../../../../reports/runtime_sensor_data.csv", "w");
+        f_csv = $fopen("../../../../../reports/runtime_sensor_data.csv", "w");
+        if (!f_csv) begin
+            f_csv = $fopen("../../../../reports/runtime_sensor_data.csv", "w");
+        end
         if (!f_csv) begin
             f_csv = $fopen("reports/runtime_sensor_data.csv", "w");
         end
