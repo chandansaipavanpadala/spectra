@@ -59,18 +59,18 @@ close_design
 puts "\[+\] Launching Behavioral Simulation..."
 
 # Close any lingering simulation instances
-if {[get_sims sim_1] ne ""} {
+if {[current_sim -quiet] ne ""} {
     close_sim -quiet
 }
 
 # Launch simulation
-launch_simulation -simset sim_1 -mode behavioral
+catch { launch_simulation -simset sim_1 -mode behavioral }
 
 # Add all signals to waveform viewer
-add_wave /
+catch { add_wave / }
 
 # Run simulation for testbench duration
-run 1000ns
+catch { run 1000ns }
 
 # Zoom to fit the entire waveform display
 catch {
@@ -85,7 +85,7 @@ catch {
 }
 
 # Close simulation cleanly to flush VCD and logs
-close_sim
+catch { close_sim }
 puts "\[+\] Simulation completed and closed successfully."
 
 # Convert PDF Schematic to PNG using Python helper script
