@@ -1,7 +1,7 @@
 # ==============================================================================
 # Script: export_screenshots.tcl
 # Description: Automated Vivado script to load sources, run elaboration,
-#              simulation, and export schematic and waveform images.
+#              simulation, and export schematic (PDF/PNG) and waveform images.
 # ==============================================================================
 
 # Step 1: Ensure the screenshots directory exists
@@ -13,7 +13,7 @@ if {![file exists $screenshot_dir]} {
     puts "\[+\] Output directory exists: $screenshot_dir"
 }
 
-# Step 2: Close stale projects and create clean in-memory project instance
+# Step 2: Close stale projects and create clean project instance
 if {[current_project -quiet] ne ""} {
     close_project -quiet
 }
@@ -42,18 +42,20 @@ set_property top tb_top [get_filesets sim_1]
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
 
-# Step 3: Open and Export RTL Elaborated Schematic
+# Step 3: Open and Export RTL Elaborated Schematic (PDF Format)
 puts "\[+\] Elaborating design 'top_monitored' to capture RTL Schematic..."
 synth_design -rtl -name rtl_1 -top top_monitored
 
-# Export full elaborated schematic image
-write_schematic -format png -force "$screenshot_dir/schematic_elaborated_top_monitored.png"
-puts "\[+\] Saved: $screenshot_dir/schematic_elaborated_top_monitored.png"
+# Export schematic to vector PDF (natively supported format in Vivado write_schematic)
+catch {
+    write_schematic -format pdf -force "$screenshot_dir/schematic_elaborated_top_monitored.pdf"
+    puts "\[+\] Saved Vector Schematic: $screenshot_dir/schematic_elaborated_top_monitored.pdf"
+}
 
 # Close elaboration view
 close_design
 
-# Step 4: Run Behavioral Simulation & Capture Waveform
+# Step 4: Run Behavioral Simulation & Capture Waveform Image
 puts "\[+\] Launching Behavioral Simulation..."
 
 # Close any lingering simulation instances
@@ -76,15 +78,21 @@ catch {
     wave_zoom -fit
 }
 
-# Export the waveform viewer window to PNG image
+# Export waveform image
 catch {
     export_wave_image -format png -file "$screenshot_dir/waveform_behavioral_simulation.png" -force
-    puts "\[+\] Saved: $screenshot_dir/waveform_behavioral_simulation.png"
+    puts "\[+\] Saved Waveform: $screenshot_dir/waveform_behavioral_simulation.png"
 }
 
 # Close simulation cleanly to flush VCD and logs
 close_sim
 puts "\[+\] Simulation completed and closed successfully."
+
+# Convert PDF Schematic to PNG using Python helper script
+catch {
+    puts "\[+\] Generating PNG schematic image via Python..."
+    exec python scripts/convert_pdf_to_png.py
+}
 
 puts "=============================================================================="
 puts "\[+\] All schematics and waveforms successfully exported to $screenshot_dir/"
