@@ -126,21 +126,18 @@ if {[string equal [get_filesets -quiet sources_1] ""]} {
 
 # Set 'sources_1' fileset object
 set obj [get_filesets sources_1]
-# Add local files from the original project (-no_copy_sources specified)
-set files [list \
- [file normalize "${origin_dir}/../lp_rtm.srcs/sources_1/new/top.v" ]\
-]
-set added_files [add_files -fileset sources_1 $files]
-
-# Set 'sources_1' fileset file properties for remote files
-# None
-
-# Set 'sources_1' fileset file properties for local files
-# None
+set src_dir "${origin_dir}/lp_rtm.srcs/sources_1/new"
+if {![file exists $src_dir]} {
+    set src_dir "${origin_dir}/../lp_rtm.srcs/sources_1/new"
+}
+set files [glob -nocomplain "${src_dir}/*.v"]
+if {[llength $files] > 0} {
+    set added_files [add_files -fileset sources_1 $files]
+}
 
 # Set 'sources_1' fileset properties
 set obj [get_filesets sources_1]
-set_property -name "top" -value "top" -objects $obj
+set_property -name "top" -value "top_monitored" -objects $obj
 
 # Create 'constrs_1' fileset (if not found)
 if {[string equal [get_filesets -quiet constrs_1] ""]} {
@@ -151,14 +148,14 @@ if {[string equal [get_filesets -quiet constrs_1] ""]} {
 set obj [get_filesets constrs_1]
 
 # Add/Import constrs file and set constrs file properties
-set file "[file normalize "$origin_dir/../lp_rtm.srcs/constrs_1/new/top.xdc"]"
-set file_added [add_files -norecurse -fileset $obj [list $file]]
-set file "new/top.xdc"
-set file_obj [get_files -of_objects [get_filesets constrs_1] [list "*$file"]]
-set_property -name "file_type" -value "XDC" -objects $file_obj
-
-# Set 'constrs_1' fileset properties
-set obj [get_filesets constrs_1]
+set constr_dir "${origin_dir}/lp_rtm.srcs/constrs_1/new"
+if {![file exists $constr_dir]} {
+    set constr_dir "${origin_dir}/../lp_rtm.srcs/constrs_1/new"
+}
+set xdc_files [glob -nocomplain "${constr_dir}/*.xdc"]
+if {[llength $xdc_files] > 0} {
+    set file_added [add_files -norecurse -fileset $obj $xdc_files]
+}
 
 # Create 'sim_1' fileset (if not found)
 if {[string equal [get_filesets -quiet sim_1] ""]} {
