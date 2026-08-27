@@ -52,3 +52,16 @@ venv/
 .idea/
 .DS_Store
 Thumbs.db
+
+# ==========================================
+# LaTeX Intermediate Build Artifacts (Documentation)
+# ==========================================
+documentation/*.aux
+documentation/*.log
+documentation/*.toc
+documentation/*.lof
+documentation/*.lot
+documentation/*.out
+documentation/*.fls
+documentation/*.fdb_latexmk
+documentation/*.synctex.gz
