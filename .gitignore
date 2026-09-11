@@ -5,6 +5,7 @@
 *.log
 *.jou
 *.str
+*.pb
 .Xil/
 *.runs/
 *.cache/
@@ -12,6 +13,11 @@
 *.sim/
 *.ip_user_files/
 *.gen/
+lp_rtm.sim/
+spectra.sim/
+spectra.cache/
+spectra.hw/
+spectra_prj/
 
 # Output bitstreams and binary reports
 *.bit
@@ -22,7 +28,6 @@
 # ==========================================
 # Simulation Outputs & Waveform Trace Dumps
 # ==========================================
-# Ignore large VCD waveform files generated during Phase 2/3
 *.vcd
 *.wdb
 *.vdb
@@ -32,18 +37,18 @@ transcript
 # ==========================================
 # Benchmark Documentation & Non-Code Files
 # ==========================================
-# Ignores PDF documentation downloaded inside benchmark zips
 benchmarks/**/*.pdf
 benchmarks/**/*.doc*
 
 # ==========================================
-# Python & Machine Learning Caches (Phase 4)
+# Python & Machine Learning Caches
 # ==========================================
 __pycache__/
 *.pyc
 .venv/
 venv/
 *.pkl
+.pytest_cache/
 
 # ==========================================
 # System & Editor Caches
