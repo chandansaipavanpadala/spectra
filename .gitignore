@@ -33,6 +33,7 @@ spectra_prj/
 *.vdb
 work/
 transcript
+xsim.dir/
 
 # ==========================================
 # Benchmark Documentation & Non-Code Files

@@ -100,7 +100,7 @@ if { $::argc > 0 } {
 set orig_proj_dir "[file normalize "$origin_dir/../"]"
 
 # Create project
-create_project ${_xil_proj_name_} ./${_xil_proj_name_} -part xc7a200tfbg676-2
+create_project -force ${_xil_proj_name_} ./${_xil_proj_name_} -part xc7a200tfbg676-2
 
 # Set the directory path for the new project
 set proj_dir [get_property directory [current_project]]
@@ -126,18 +126,24 @@ if {[string equal [get_filesets -quiet sources_1] ""]} {
 
 # Set 'sources_1' fileset object
 set obj [get_filesets sources_1]
-set src_dir "${origin_dir}/lp_rtm.srcs/sources_1/new"
+set src_dir "${origin_dir}/src"
+if {![file exists $src_dir]} {
+    set src_dir "${origin_dir}/lp_rtm.srcs/sources_1/new"
+}
 if {![file exists $src_dir]} {
     set src_dir "${origin_dir}/../lp_rtm.srcs/sources_1/new"
 }
-set files [glob -nocomplain "${src_dir}/*.v"]
+set files [glob -nocomplain "${src_dir}/aes_128*.v"]
+if {[llength $files] == 0} {
+    set files [glob -nocomplain "${src_dir}/*.v"]
+}
 if {[llength $files] > 0} {
     set added_files [add_files -fileset sources_1 $files]
 }
 
 # Set 'sources_1' fileset properties
 set obj [get_filesets sources_1]
-set_property -name "top" -value "top_monitored" -objects $obj
+set_property -name "top" -value "aes_128" -objects $obj
 
 # Create 'constrs_1' fileset (if not found)
 if {[string equal [get_filesets -quiet constrs_1] ""]} {
@@ -164,13 +170,18 @@ if {[string equal [get_filesets -quiet sim_1] ""]} {
 
 # Set 'sim_1' fileset object
 set obj [get_filesets sim_1]
-# Empty (no sources present)
+set tb_files [glob -nocomplain "${src_dir}/tb_sidechannel.v"]
+if {[llength $tb_files] > 0} {
+    add_files -fileset sim_1 $tb_files
+}
 
 # Set 'sim_1' fileset properties
 set obj [get_filesets sim_1]
 set_property -name "hbs.configure_design_for_hier_access" -value "1" -objects $obj
-set_property -name "top" -value "top" -objects $obj
+set_property -name "top" -value "tb_sidechannel" -objects $obj
 set_property -name "top_lib" -value "xil_defaultlib" -objects $obj
+update_compile_order -fileset sources_1
+update_compile_order -fileset sim_1
 
 # Set 'utils_1' fileset object
 set obj [get_filesets utils_1]
