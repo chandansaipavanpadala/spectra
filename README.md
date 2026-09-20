@@ -169,32 +169,32 @@ $$\text{Eq. 20: } \text{Verdict} = \begin{cases} \text{Golden Chip}, & \text{if 
 
 ### 4.1 Granular Multi-Dimensional Comparison Matrix
 
-| Architectural Dimension | Reference Paper (He et al., IEEE JIOT 2024) | Legacy Intrusive Monitors (LP-RTM) | SPECTRA Framework (Ours) |
-| :--- | :--- | :--- | :--- |
-| **Inspection Paradigm** | Non-invasive power side-channel analysis | Intrusive on-chip delay sensors | **Non-invasive power side-channel analysis** |
-| **Silicon Area Overhead** | 0.00% (External measurement) | ~2.4% (Ring oscillator taps) | **0.00% (Zero silicon modification)** |
-| **Target Benchmark Core** | 128-bit AES cryptographic core | 128-bit AES cryptographic core | **128-bit AES cryptographic core (`src/aes_128.v`)** |
-| **Trojan Architecture** | Synchronous 2-bit counter (~0.1% area overhead) | Ring oscillator delay degradation | **Synchronous 2-bit counter (`src/aes_128_trojan.v`)** |
-| **Trojan Insertion Level** | Gate-level netlist (post-synthesis ASIC flow) | RTL source modification | **Synthesizable RTL / Post-Synthesis Gate Netlist** |
-| **Trojan Trigger / Payload** | Always-on sequential / implicit payload | Continual delay degradation | **Rare trigger (`state_in[31:0] == 32'hA5A5_5A5A`) / implicit** |
-| **Physical Testbed Platform** | Tektronix DPO 3034, TDP0500 probe, NI DAQ, LabVIEW | FPGA board hardware hooks | **Full open-source EDA flow (`src/tb_sidechannel.v`, Vivado batch)** |
-| **Device Under Test (DUT)** | 72 Xilinx Spartan-3E XC3S500E FPGAs (90 nm) | Xilinx Artix-7 XC7A35T | **Xilinx 7-Series / Spartan Architecture Model** |
-| **Test Stimulus Optimization** | VCS simulation of $10^7$ vectors (top-10 low-toggle) | Random functional vectors | **Replicated low-toggle stimulus sequence (min toggle noise)** |
-| **Sampling Setup** | $N = 1,000,000$, $f_s = 2.5\text{ Gs/s}$, $f_{\text{clk}} = 10\text{ MHz}$ | On-chip counter sampling | **$N = 1,000,000$, $f_s = 2.5\text{ GHz}$, $f_{\text{clk}} = 10\text{ MHz}$ (PVT noise)** |
-| **Feature Extraction (SFA)** | Discrete 129-D EV sampling (Eq. 3) | Counter frequency delta | **129-D EV + Adaptive Harmonic Band Energy (AHBE)** |
-| **Clock Jitter / Drift Resilience**| Low (single-bin rounding loses energy on drift) | N/A | **High (continuous $\pm 500\text{ kHz}$ harmonic band integration)** |
-| **Clustering Algorithm** | Fuzzy C-Means ($c=2, m=2.0$, tol $\epsilon = 10^{-6}$) | Supervised Random Forest | **Vectorized Fuzzy C-Means ($c=2, m=2.0$, 5 iterations)** |
-| **Category Labeling** | Spectral Energy Analysis: $\int \|V_T\|^2 > \int \|V_G\|^2$ | Ground-truth netlist labels | **Spectral Energy Analysis ($\int \|V_T\|^2 = 0.999999989 > \int \|V_G\|^2$)** |
-| **Dimensionality Reduction** | PCA ($k_n = 10$, $>85\%$ variance explained) | Handcrafted feature selection | **PCA ($k_n = 10$, 100.00% variance explained)** |
-| **Data Compression Ratios** | SFA: 129 ppm ($10^6 \to 129$); PCA: 7.75% ($129 \to 10$) | None | **SFA: 129 ppm ($10^6 \to 129$); PCA: 7.75% ($129 \to 10$)** |
-| **Distance Weight Selection** | Static heuristic weights (no derivation provided) | N/A | **Information-Entropy Adaptive Weights ($a_1=0.8311, a_2=0.1689$)** |
-| **Decision Rule & Metric** | $R_{FD} = FD_G / FD_T$; Golden if $<1.0$, Trojan if $\ge 1.0$| Supervised probability threshold | **$R_{FD} = FD_G / FD_T$; Golden if $<1.0$, Trojan if $\ge 1.0$** |
-| **Validation Test Suite** | 24 FPGA test chips (12 Golden, 12 Trojan) | 20 test runs | **24 independent validation chips (12 Golden, 12 Trojan)** |
-| **Detection Accuracy** | 100.00% (24 / 24 chips) | 98.20% | **100.00% (24 / 24 chips)** |
-| **False Positive Rate (FPR)** | 0.00% (0 / 12 false alarms) | 1.80% | **0.00% (0 / 12 false alarms)** |
-| **False Negative Rate (FNR)** | 0.00% (0 / 12 missed detections) | 1.80% | **0.00% (0 / 12 missed detections)** |
-| **Trojan Sensitivity Floor** | 0.1% equivalent area ratio | ~1.5% | **0.1% equivalent area ratio** |
-| **Classification Separation Margin**| Linear proximity to $y=x$ boundary (He et al. Fig. 9)| Boundary overlap | **Over $10^7$ dynamic separation ($R_{FD, G} \approx 2.78 \times 10^{-4}, R_{FD, T} \approx 3.76 \times 10^3$)** |
+| Architectural Dimension | Reference Paper (He et al., IEEE JIOT 2024) | SPECTRA Framework (Ours) |
+| :--- | :--- | :--- |
+| **Inspection Paradigm** | Non-invasive power side-channel analysis | **Non-invasive power side-channel analysis** |
+| **Silicon Area Overhead** | 0.00% (External measurement) | **0.00% (Zero silicon modification)** |
+| **Target Benchmark Core** | 128-bit AES cryptographic core | **128-bit AES cryptographic core (`src/aes_128.v`)** |
+| **Trojan Architecture** | Synchronous 2-bit counter (~0.1% area overhead) | **Synchronous 2-bit counter (`src/aes_128_trojan.v`)** |
+| **Trojan Insertion Level** | Gate-level netlist (post-synthesis ASIC flow) | **Synthesizable RTL / Post-Synthesis Gate Netlist** |
+| **Trojan Trigger / Payload** | Always-on sequential / implicit payload | **Rare trigger (`state_in[31:0] == 32'hA5A5_5A5A`) / implicit** |
+| **Physical Testbed Platform** | Tektronix DPO 3034, TDP0500 probe, NI DAQ, LabVIEW | **Full open-source EDA flow (`src/tb_sidechannel.v`, Vivado batch)** |
+| **Device Under Test (DUT)** | 72 Xilinx Spartan-3E XC3S500E FPGAs (90 nm) | **Xilinx 7-Series / Spartan Architecture Model** |
+| **Test Stimulus Optimization** | VCS simulation of $10^7$ vectors (top-10 low-toggle) | **Replicated low-toggle stimulus sequence (min toggle noise)** |
+| **Sampling Setup** | $N = 1,000,000$, $f_s = 2.5\text{ Gs/s}$, $f_{\text{clk}} = 10\text{ MHz}$ | **$N = 1,000,000$, $f_s = 2.5\text{ GHz}$, $f_{\text{clk}} = 10\text{ MHz}$ (PVT noise)** |
+| **Feature Extraction (SFA)** | Discrete 129-D EV sampling (Eq. 3) | **129-D EV + Adaptive Harmonic Band Energy (AHBE)** |
+| **Clock Jitter / Drift Resilience**| Low (single-bin rounding loses energy on drift) | **High (continuous $\pm 500\text{ kHz}$ harmonic band integration)** |
+| **Clustering Algorithm** | Fuzzy C-Means ($c=2, m=2.0$, tol $\epsilon = 10^{-6}$) | **Vectorized Fuzzy C-Means ($c=2, m=2.0$, 5 iterations)** |
+| **Category Labeling** | Spectral Energy Analysis: $\int \|V_T\|^2 > \int \|V_G\|^2$ | **Spectral Energy Analysis ($\int \|V_T\|^2 = 0.999999989 > \int \|V_G\|^2$)** |
+| **Dimensionality Reduction** | PCA ($k_n = 10$, $>85\%$ variance explained) | **PCA ($k_n = 10$, 100.00% variance explained)** |
+| **Data Compression Ratios** | SFA: 129 ppm ($10^6 \to 129$); PCA: 7.75% ($129 \to 10$) | **SFA: 129 ppm ($10^6 \to 129$); PCA: 7.75% ($129 \to 10$)** |
+| **Distance Weight Selection** | Static heuristic weights (no derivation provided) | **Information-Entropy Adaptive Weights ($a_1=0.8311, a_2=0.1689$)** |
+| **Decision Rule & Metric** | $R_{FD} = FD_G / FD_T$; Golden if $<1.0$, Trojan if $\ge 1.0$| **$R_{FD} = FD_G / FD_T$; Golden if $<1.0$, Trojan if $\ge 1.0$** |
+| **Validation Test Suite** | 24 FPGA test chips (12 Golden, 12 Trojan) | **24 independent validation chips (12 Golden, 12 Trojan)** |
+| **Detection Accuracy** | 100.00% (24 / 24 chips) | **100.00% (24 / 24 chips)** |
+| **False Positive Rate (FPR)** | 0.00% (0 / 12 false alarms) | **0.00% (0 / 12 false alarms)** |
+| **False Negative Rate (FNR)** | 0.00% (0 / 12 missed detections) | **0.00% (0 / 12 missed detections)** |
+| **Trojan Sensitivity Floor** | 0.1% equivalent area ratio | **0.1% equivalent area ratio** |
+| **Classification Separation Margin**| Linear proximity to $y=x$ boundary (He et al. Fig. 9)| **Over $10^7$ dynamic separation ($R_{FD, G} \approx 2.78 \times 10^{-4}, R_{FD, T} \approx 3.76 \times 10^3$)** |
 
 ---
 
