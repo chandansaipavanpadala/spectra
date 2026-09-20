@@ -651,19 +651,21 @@ $$\text{Decision Verdict: } \begin{cases} R_{FD} < 1.0 \implies \text{Golden Chi
 \begin{table}[htbp]
 \centering
 \small
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c}
 \toprule
-\textbf{Metric} & \textbf{He et al. [2024]} & \textbf{Intrusive LP-RTM} & \textbf{SPECTRA (Ours)} \\
+\textbf{Metric} & \textbf{He et al. [2024]} & \textbf{SPECTRA (Ours)} \\
 \midrule
-\textbf{Detection Accuracy} & 97.50\% & 98.20\% & \textbf{100.00\%} \\
-\textbf{Precision Score} & 97.50\% & 98.00\% & \textbf{100.00\%} \\
-\textbf{Recall / Sensitivity} & 97.50\% & 98.50\% & \textbf{100.00\%} \\
-\textbf{False Positive Rate (FPR)} & 2.50\% & 1.80\% & \textbf{0.00\%} \\
-\textbf{Silicon Overhead} & 0.00\% & 2.40\% & \textbf{0.00\%} \\
-\textbf{Jitter Immunity} & Moderate & High & \textbf{High (AHBE)} \\
+\textbf{Detection Accuracy} & 100.00\% & \textbf{100.00\%} \\
+\textbf{Precision Score} & 100.00\% & \textbf{100.00\%} \\
+\textbf{Recall / Sensitivity} & 100.00\% & \textbf{100.00\%} \\
+\textbf{False Positive Rate (FPR)} & 0.00\% & \textbf{0.00\%} \\
+\textbf{Silicon Overhead} & 0.00\% & \textbf{0.00\%} \\
+\textbf{Jitter Immunity} & Moderate (Single-Bin) & \textbf{High (AHBE Continuous Bands)} \\
+\textbf{Distance Weighting} & Static Heuristic & \textbf{Information-Entropy Adaptive} \\
+\textbf{Separation Margin} & Linear Proximity & \textbf{$> 10^7$ Dynamic Margin} \\
 \bottomrule
 \end{tabular*}
-\caption{Benchmark Comparison Against Baseline Prior Art}
+\caption{Benchmark Comparison Against Baseline Reference Paper}
 \label{tab:benchmark_comparison}
 \end{table}
 
