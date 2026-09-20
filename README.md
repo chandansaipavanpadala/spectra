@@ -87,6 +87,46 @@ Conventional post-silicon testing predominantly relies on intrusive on-chip sens
 
 ---
 
+## 2.1 Repository Directory Structure & File Catalog
+
+```
+spectra/
+├── src/                  # Synthesizable IEEE 1364-2001 RTL & simulation testbenches
+├── scripts/              # Python processing pipeline & Vivado Tcl automation scripts
+├── reports/              # Serialized mathematical models, feature vectors & validation data
+├── screenshots/          # High-resolution (300 DPI) verification plots & diagrams
+├── documentation/        # Publication-grade LaTeX manual & compiled PDF
+└── references/           # IEEE reference paper & high-resolution page renders
+```
+
+### Individual File Descriptions by Directory:
+- **Hardware Sources (`src/`):** [src/README.md](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/src/README.md)
+  - [`src/aes_128.v`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/src/aes_128.v): Synthesizable 128-bit AES cryptographic core implementing 10 iterative rounds representing clean golden reference silicon.
+  - [`src/aes_128_trojan.v`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/src/aes_128_trojan.v): Synthesizable Trojan-infected AES core with a covert 0.1% area footprint synchronous 2-bit counter triggered by a rare 32-bit state match.
+  - [`src/tb_sidechannel.v`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/src/tb_sidechannel.v): Dual-lockstep cycle-accurate simulation testbench exercising low-toggle stimulus vectors and recording time-domain power proxy traces.
+
+- **Pipeline Scripts (`scripts/`):** [scripts/README.md](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/scripts/README.md)
+  - [`scripts/01_sfa_feature_extract.py`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/scripts/01_sfa_feature_extract.py): 1M-point FFT feature extraction engine integrating continuous Adaptive Harmonic Band Energy (AHBE) across $\pm 500\text{ kHz}$ windows.
+  - [`scripts/02_fcc_sea_clustering.py`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/scripts/02_fcc_sea_clustering.py): Vectorized Fuzzy C-Means (FCM) clustering and autonomous Spectral Energy Analysis (SEA) cluster identification.
+  - [`scripts/03_pca_dimension_reduc.py`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/scripts/03_pca_dimension_reduc.py): 10-D Principal Component Analysis (PCA) orthogonal projection engine accounting for 100.00% cumulative variance.
+  - [`scripts/04_fusion_classifier.py`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/scripts/04_fusion_classifier.py): Shannon information-entropy adaptive distance fusion classifier evaluating the $R_{FD}$ boundary across 24 test chips.
+  - [`scripts/export_screenshots.tcl`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/scripts/export_screenshots.tcl): Headless Vivado batch script elaborating RTL netlists and exporting graphical schematic diagrams.
+  - [`scripts/recreate_project.tcl`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/scripts/recreate_project.tcl): Vivado Tcl project restoration script configuring filesets, properties, and build targets.
+
+- **Reports & Datasets (`reports/`):** [reports/README.md](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/README.md)
+  - [`reports/spectral_eigenvectors.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/spectral_eigenvectors.json): 129-D feature vectors for 48 training chips and 24 validation chips extracted at $f_s = 2.5\text{ GHz}$.
+  - [`reports/clustering_results.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/clustering_results.json): FCM convergence trajectory (5 iterations), 129-D centroids ($\mu_G, \mu_T$), and SEA energy integrals.
+  - [`reports/pca_subspace.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/pca_subspace.json): Top-10 PCA projection matrix ($\mathbf{coeff}_{129 \times 10}$), projected scores, and non-singular covariance matrices.
+  - [`reports/detection_report.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/detection_report.json): Complete post-silicon validation metrics, confusion matrix, adaptive weights ($a_1, a_2$), and per-chip $R_{FD}$ ratios.
+  - [`reports/power_trace_golden.csv`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/power_trace_golden.csv): Cycle-by-cycle time-domain power proxy trace log for the simulated golden AES core.
+  - [`reports/power_trace_trojan.csv`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/power_trace_trojan.csv): Cycle-by-cycle time-domain power proxy trace log for the simulated Trojan-infected AES core.
+
+- **Technical Manual (`documentation/`):**
+  - [`documentation/spectra_manual.tex`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/documentation/spectra_manual.tex): Publication-grade technical textbook manual written in LaTeX with native TikZ diagrams.
+  - [`documentation/spectra_manual.pdf`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/documentation/spectra_manual.pdf): Compiled 15-page comprehensive textbook manual.
+
+---
+
 ## 3. Mathematical Formulations & Derivations
 
 The SPECTRA processing engine strictly implements the mathematical derivations formulated by Chunhua He et al. (*IEEE Internet of Things Journal*, 2024), augmented with proprietary noise-resilient and entropy-adaptive extensions.
