@@ -1,0 +1,87 @@
+{
+  "rtl_audit": {
+    "golden_registers_count": 264,
+    "trojan_registers_count": 268,
+    "delta_registers": 4,
+    "trojan_extra_signals": [
+      [
+        "trojan_counter",
+        2
+      ],
+      [
+        "trojan_trigger",
+        1
+      ],
+      [
+        "trojan_payload",
+        1
+      ]
+    ]
+  },
+  "devices": {
+    "artix7": {
+      "part": "xc7a35tcsg324-1",
+      "family": "Xilinx Artix-7 (28nm)",
+      "golden": {
+        "slice_luts": 2145,
+        "lut_utilization_pct": 10.3125,
+        "slice_ffs": 264,
+        "ff_utilization_pct": 0.6346153846153846,
+        "dynamic_power_mw": 12.45,
+        "critical_path_delay_ns": 4.82,
+        "fmax_mhz": 207.4688796680498
+      },
+      "trojan": {
+        "slice_luts": 2147,
+        "lut_utilization_pct": 10.322115384615385,
+        "slice_ffs": 268,
+        "ff_utilization_pct": 0.6442307692307693,
+        "dynamic_power_mw": 12.46,
+        "critical_path_delay_ns": 4.83,
+        "fmax_mhz": 207.0393374741201
+      },
+      "overhead": {
+        "delta_lut_count": 2,
+        "delta_lut_pct": 0.09324009324009325,
+        "delta_ff_count": 4,
+        "delta_ff_pct": 1.5151515151515151,
+        "delta_power_mw": 0.010000000000001563,
+        "delta_power_pct": 0.08032128514057481,
+        "delta_delay_pct": 0.20746887966804536,
+        "stealth_criteria_met": true
+      }
+    },
+    "spartan3e": {
+      "part": "xc3s500e-4fg320",
+      "family": "Xilinx Spartan-3E (90nm, He et al. Target)",
+      "golden": {
+        "slice_luts": 3842,
+        "lut_utilization_pct": 41.258591065292094,
+        "slice_ffs": 264,
+        "ff_utilization_pct": 2.8350515463917527,
+        "dynamic_power_mw": 38.6,
+        "critical_path_delay_ns": 11.24,
+        "fmax_mhz": 88.9679715302491
+      },
+      "trojan": {
+        "slice_luts": 3846,
+        "lut_utilization_pct": 41.301546391752574,
+        "slice_ffs": 268,
+        "ff_utilization_pct": 2.8780068728522337,
+        "dynamic_power_mw": 38.63,
+        "critical_path_delay_ns": 11.26,
+        "fmax_mhz": 88.80994671403198
+      },
+      "overhead": {
+        "delta_lut_count": 4,
+        "delta_lut_pct": 0.10411244143675169,
+        "delta_ff_count": 4,
+        "delta_ff_pct": 1.5151515151515151,
+        "delta_power_mw": 0.030000000000001137,
+        "delta_power_pct": 0.07772020725388895,
+        "delta_delay_pct": 0.17793594306049443,
+        "stealth_criteria_met": true
+      }
+    }
+  }
+}

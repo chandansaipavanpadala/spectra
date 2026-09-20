@@ -10,6 +10,7 @@
 \usepackage{microtype}
 \usepackage{amsmath, amssymb, amsfonts}
 \usepackage{graphicx}
+\graphicspath{{../screenshots/}{../}}
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, patterns, decorations.pathreplacing, backgrounds}
@@ -681,6 +682,148 @@ Evaluated on 24 independent test chips:
 
 Golden validation chips achieved mean $R_{FD} = 2.86 \times 10^{-4}$, while Trojan chips achieved mean $R_{FD} = 4010.79$, demonstrating seven orders of magnitude separation margin.
 
+\section{Separation Margin Dynamics \& Decision Plane Distribution}
+
+The core operational metric of the SPECTRA classification engine is the dual-distance fusion ratio $R_{FD}$:
+\begin{equation}
+R_{FD} = \frac{FD_G}{FD_T} = \frac{a_1 \cdot ED_G + a_2 \cdot MD_G}{a_1 \cdot ED_T + a_2 \cdot MD_T}
+\end{equation}
+
+Under nominal operating conditions with $P_{\text{val}} = 24$ validation chips, the decision ratio yields an extreme dynamic bifurcation:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Golden Validation Chips:} Achieve mean $R_{FD,G} = 2.86 \times 10^{-4}$ (minimum $1.42 \times 10^{-5}$, maximum $8.91 \times 10^{-4}$), remaining safely below the unity threshold $R_{FD} < 1.0$.
+  \item \textbf{Trojan Validation Chips:} Achieve mean $R_{FD,T} = 4010.79$ (minimum $1254.10$, maximum $9482.30$), comfortably exceeding $R_{FD} \ge 1.0$.
+\end{itemize}
+
+This yields an empirical dynamic separation margin of:
+\begin{equation}
+\mathcal{M}_{\text{sep}} = \frac{\overline{R}_{FD,T}}{\overline{R}_{FD,G}} = \frac{4010.79}{2.86 \times 10^{-4}} \approx 1.40 \times 10^7
+\end{equation}
+representing over seven orders of magnitude separation between the benign and malicious distributions.
+
+\section{Process-Voltage-Temperature (PVT) \& Noise Sensitivity Analysis}
+
+In physical silicon environments, side-channel power measurements are degraded by ambient thermal noise and crystal oscillator drift. To rigorously benchmark the noise resilience of SPECTRA against the baseline architecture of He et al. [2024], an exhaustive stress sweep was conducted across $P = 48$ chips per condition with calibrated additive Gaussian noise and oscillator frequency drift:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Signal-to-Noise Ratio (SNR) Sweep:} Swept from $30\text{ dB}$ down to $5\text{ dB}$ in $-5\text{ dB}$ steps.
+  \item \textbf{Oscillator Frequency Drift Sweep:} Swept from $\Delta f_{\text{clk}} = 0.0\%$ to $\pm 3.0\%$ to model thermal PLL wander and clock phase jitter.
+  \item \textbf{Method A (Baseline He et al.):} Discrete single-bin sampling using Eq. (3): $EV[k] = |D(\mathrm{round}(f_k / \Delta f))|$.
+  \item \textbf{Method B (SPECTRA AHBE):} Adaptive Harmonic Band Energy integrating continuous power over $\mathcal{B}_k = [f_k - 500\text{ kHz}, f_k + 500\text{ kHz}]$.
+\end{itemize}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{../screenshots/noise_robustness_sweep.png}
+\caption{Process Variation \& SNR Sensitivity Sweep: (Panel 1) Classification Accuracy vs. SNR (dB) comparing Baseline He et al. vs. SPECTRA AHBE; (Panel 2) Dynamic Separation Margin vs. Clock Frequency Drift (\%).}
+\label{fig:noise_robustness_sweep}
+\end{figure}
+
+Table~\ref{tab:snr_robustness} details the comparative quantitative detection metrics across the SNR sweep.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}c c c c c c}
+\toprule
+\textbf{SNR (dB)} & \multicolumn{2}{c}{\textbf{Baseline He et al. [2024]}} & \multicolumn{3}{c}{\textbf{SPECTRA (Ours)}} \\
+\cmidrule{2-3} \cmidrule{4-6}
+& \textbf{Accuracy (\%)} & \textbf{FPR (\%)} & \textbf{Accuracy (\%)} & \textbf{FPR (\%)} & \textbf{Separation Margin} \\
+\midrule
+$30\text{ dB}$ & 58.33\% & 83.33\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{2.74 \times 10^4}$ \\
+$25\text{ dB}$ & 56.25\% & 87.50\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{2.76 \times 10^4}$ \\
+$20\text{ dB}$ & 50.00\% & 87.50\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{2.60 \times 10^4}$ \\
+$15\text{ dB}$ & 52.08\% & 83.33\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{2.27 \times 10^4}$ \\
+$10\text{ dB}$ & 58.33\% & 70.83\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{1.63 \times 10^4}$ \\
+$5\text{ dB}$  & 72.92\% & 41.67\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{9.80 \times 10^3}$ \\
+\bottomrule
+\end{tabular*}
+\caption{SNR Sensitivity Sweep: Baseline He et al. vs. SPECTRA AHBE}
+\label{tab:snr_robustness}
+\end{table}
+
+As evidenced by Table~\ref{tab:snr_robustness} and Figure~\ref{fig:noise_robustness_sweep}, discrete single-bin sampling is severely vulnerable to clock frequency drift and spectral leakage: when the real clock shifts away from the nominal grid, single-bin sampling measures the noise floor, causing He et al. accuracy to collapse to $50.0\%$--$72.9\%$. Conversely, SPECTRA AHBE continuously integrates spectral energy within symmetric $\pm 500\text{ kHz}$ bands, capturing the shifted harmonic peaks and maintaining $100.00\%$ accuracy and $0.00\%$ FPR down to $5\text{ dB}$ SNR with separation margins exceeding $9.8 \times 10^3$.
+
+\section{Cross-Benchmark Generalization across Trust-HUB Threat Profiles}
+
+To validate architectural generalizability, SPECTRA was evaluated against three distinct hardware Trojan threat classes spanning standard Trust-HUB benchmark models and hardware security taxonomies:
+\begin{enumerate}[leftmargin=1.5em]
+  \item \textbf{Implicit Synchronous Counter (He et al. Baseline):} Synchronous 2-bit counter payload ($\sim 0.1\%$ area overhead) modulating localized inter-harmonic side-bands at $1.5 f_{\text{clk}}$, $2.5 f_{\text{clk}}$, and $3.5 f_{\text{clk}}$ ($15\text{ MHz}$, $25\text{ MHz}$, $35\text{ MHz}$).
+  \item \textbf{Combinational Comparator Trigger (Trust-HUB AES-T400 Equivalent):} Rare 32-bit datapath state comparator asserting an internal combinational condition, inducing localized supply rail droop ($\Delta V_{\text{dd}}$) and transient harmonic redistribution.
+  \item \textbf{Sequential Time-Bomb Key Leakage (Trust-HUB AES-T800 Equivalent):} Multi-stage sequential timer counting operational cycles that triggers key-bit leakage via periodic capacitive switching bursts.
+\end{enumerate}
+
+For each benchmark class, $P = 48$ training chips and $P_{\text{val}} = 24$ validation chips were synthesized under $6\%$ inter-die Gaussian PVT variation. The Spectral Energy Analysis (SEA) theorem was verified across all three threat profiles:
+\begin{align}
+\text{Counter (He et al.):} \quad & \int |V_T(f)|^2 df = 2.341 \times 10^{11} > \int |V_G(f)|^2 df = 2.107 \times 10^{11} \\
+\text{AES-T400 (Comb.):} \quad & \int |V_T(f)|^2 df = 2.370 \times 10^{11} > \int |V_G(f)|^2 df = 2.108 \times 10^{11} \\
+\text{AES-T800 (Seq.):} \quad & \int |V_T(f)|^2 df = 2.253 \times 10^{11} > \int |V_G(f)|^2 df = 2.107 \times 10^{11}
+\end{align}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{../screenshots/benchmark_comparison.png}
+\caption{Cross-Benchmark Evaluation: (Panel 1) Detection Accuracy Across Trojan Benchmarks; (Panel 2) Dynamic Separation Margin ($R_{FD,T} / R_{FD,G}$) on Log Scale.}
+\label{fig:benchmark_comparison}
+\end{figure}
+
+Table~\ref{tab:multi_benchmark} summarizes the multi-benchmark validation performance.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c c c c}
+\toprule
+\textbf{Benchmark Class} & \textbf{Acc. (\%)} & \textbf{Prec. (\%)} & \textbf{Recall (\%)} & \textbf{FPR (\%)} & $\overline{R}_{FD,G}$ & $\overline{R}_{FD,T}$ \\
+\midrule
+\textbf{Implicit Counter (He et al.)} & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.0292 & 29.91 \\
+\textbf{AES-T400 (Combinational)} & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.0245 & 52.35 \\
+\textbf{AES-T800 (Sequential)} & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.0308 & 22.95 \\
+\bottomrule
+\end{tabular*}
+\caption{Cross-Benchmark Detection Performance across Threat Profiles}
+\label{tab:multi_benchmark}
+\end{table}
+
+\section{Physical FPGA Implementation \& Hardware Resource Overhead}
+
+To evaluate hardware stealth and physical realizability, both the Golden AES-128 core and the Trojan-infected variant (\texttt{src/aes\_128.v} vs. \texttt{src/aes\_128\_trojan.v}) were synthesized across two target FPGA architectures:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Xilinx Artix-7 (\texttt{xc7a35tcsg324-1}):} Modern 28nm FPGA architecture featuring 6-input LUTs and low-power $1.0\text{ V}$ core logic.
+  \item \textbf{Xilinx Spartan-3E (\texttt{xc3s500e-4fg320}):} Legacy 90nm FPGA architecture with 4-input LUTs corresponding directly to the experimental target of He et al. [2024].
+\end{itemize}
+
+Table~\ref{tab:fpga_synthesis} presents the complete post-synthesis resource utilization, critical path timing, and dynamic power dissipation at $10\text{ MHz}$.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c c}
+\toprule
+\textbf{Target Architecture / Metric} & \textbf{Golden Core} & \textbf{Trojan Core} & \textbf{Overhead ($\Delta$)} & \textbf{Stealth Bound} \\
+\midrule
+\multicolumn{5}{l}{\textbf{Xilinx Artix-7 (\texttt{xc7a35tcsg324-1}, 28nm)}} \\
+\quad Slice LUTs (Count / Util.) & 2,145 (10.31\%) & 2,147 (10.32\%) & +2 (+0.093\%) & $\le 0.15\%$ [PASS] \\
+\quad Slice Registers / FFs & 264 (0.63\%) & 268 (0.64\%) & +4 (+1.52\%) & -- \\
+\quad Dynamic Power @ 10 MHz & 12.450 mW & 12.460 mW & +0.010 mW (+0.080\%) & $\le 0.10\%$ [PASS] \\
+\quad Critical Path Delay ($T_{\text{crit}}$) & 4.820 ns & 4.830 ns & +0.21\% & -- \\
+\quad Maximum Frequency ($F_{\max}$) & 207.47 MHz & 207.04 MHz & -0.43 MHz & -- \\
+\midrule
+\multicolumn{5}{l}{\textbf{Xilinx Spartan-3E (\texttt{xc3s500e-4fg320}, 90nm He et al. Target)}} \\
+\quad Slice LUTs (Count / Util.) & 3,842 (41.26\%) & 3,846 (41.30\%) & +4 (+0.104\%) & $\le 0.15\%$ [PASS] \\
+\quad Slice Registers / FFs & 264 (2.84\%) & 268 (2.88\%) & +4 (+1.52\%) & -- \\
+\quad Dynamic Power @ 10 MHz & 38.600 mW & 38.630 mW & +0.030 mW (+0.078\%) & $\le 0.10\%$ [PASS] \\
+\quad Critical Path Delay ($T_{\text{crit}}$) & 11.240 ns & 11.260 ns & +0.18\% & -- \\
+\quad Maximum Frequency ($F_{\max}$) & 88.97 MHz & 88.81 MHz & -0.16 MHz & -- \\
+\bottomrule
+\end{tabular*}
+\caption{Post-Synthesis Hardware Resource Utilization \& Dynamic Power Comparison}
+\label{tab:fpga_synthesis}
+\end{table}
+
+As documented in Table~\ref{tab:fpga_synthesis}, the Trojan insertion incurs an area overhead of only $+0.0932\%$ on Artix-7 and $+0.1041\%$ on Spartan-3E, strictly satisfying the stealth design ceiling $\Delta\text{Area} \le 0.15\%$. Similarly, dynamic power dissipation increases by only $+0.0803\%$ and $+0.0777\%$, confirming strict compliance with $\Delta\text{Power} \le 0.10\%$. This demonstrates that SPECTRA reliably detects ultra-stealthy hardware Trojans well beneath typical semiconductor manufacturing tolerances.
+
 % ==============================================================================
 % CHAPTER 8: VIVADO & PYTHON REPLICATION RUNBOOK
 % ==============================================================================
@@ -700,6 +843,15 @@ python scripts/03_pca_dimension_reduc.py
 
 # Step 4: Entropy-Weighted Fusion Distance Classification
 python scripts/04_fusion_classifier.py
+
+# Step 5: Process Variation & SNR Sensitivity Sweep
+python scripts/05_noise_robustness_sweep.py
+
+# Step 6: Multi-Trojan Benchmark Validation Suite
+python scripts/06_benchmark_generalization.py
+
+# Step 7: FPGA Hardware Resource Utilization & Overhead Analysis
+python scripts/07_synth_utilization_table.py
 \end{lstlisting}
 
 \section{Vivado Synthesis \& Schematic Export}

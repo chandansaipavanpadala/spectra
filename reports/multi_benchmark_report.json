@@ -1,0 +1,83 @@
+{
+  "evaluation_scope": "Multi-Trojan Threat Generalization",
+  "inter_die_process_variation": "6% Inter-Die Gaussian PVT",
+  "benchmarks_evaluated": {
+    "counter_he": "Implicit 2-Bit Counter (He et al.)",
+    "aes_t400": "Trust-HUB AES-T400 (Combinational)",
+    "aes_t800": "Trust-HUB AES-T800 (Sequential)"
+  },
+  "results": {
+    "counter_he": {
+      "benchmark_type": "counter_he",
+      "sea_verified": true,
+      "sea_golden_energy": 210677382745.79675,
+      "sea_trojan_energy": 234144709851.84497,
+      "pca_variance_explained_pct": 99.99993859395303,
+      "fusion_weights": {
+        "a1_ed": 0.8112250659114308,
+        "a2_md": 0.18877493408856913
+      },
+      "confusion_matrix": {
+        "TP": 12,
+        "FP": 0,
+        "TN": 12,
+        "FN": 0
+      },
+      "accuracy_pct": 100.0,
+      "precision_pct": 100.0,
+      "recall_pct": 100.0,
+      "false_positive_rate_pct": 0.0,
+      "mean_rfd_golden": 0.029182227184950362,
+      "mean_rfd_trojan": 29.906877366785654,
+      "dynamic_separation_margin": 1024.8319011505803
+    },
+    "aes_t400": {
+      "benchmark_type": "aes_t400",
+      "sea_verified": true,
+      "sea_golden_energy": 210768828509.40414,
+      "sea_trojan_energy": 237016722465.8168,
+      "pca_variance_explained_pct": 99.99996244604232,
+      "fusion_weights": {
+        "a1_ed": 0.8115641859694291,
+        "a2_md": 0.1884358140305708
+      },
+      "confusion_matrix": {
+        "TP": 12,
+        "FP": 0,
+        "TN": 12,
+        "FN": 0
+      },
+      "accuracy_pct": 100.0,
+      "precision_pct": 100.0,
+      "recall_pct": 100.0,
+      "false_positive_rate_pct": 0.0,
+      "mean_rfd_golden": 0.024548678650666803,
+      "mean_rfd_trojan": 52.35366949251654,
+      "dynamic_separation_margin": 2132.6471471392956
+    },
+    "aes_t800": {
+      "benchmark_type": "aes_t800",
+      "sea_verified": true,
+      "sea_golden_energy": 210657071637.28052,
+      "sea_trojan_energy": 225272001157.69095,
+      "pca_variance_explained_pct": 99.99991889320891,
+      "fusion_weights": {
+        "a1_ed": 0.8111562812901677,
+        "a2_md": 0.1888437187098322
+      },
+      "confusion_matrix": {
+        "TP": 12,
+        "FP": 0,
+        "TN": 12,
+        "FN": 0
+      },
+      "accuracy_pct": 100.0,
+      "precision_pct": 100.0,
+      "recall_pct": 100.0,
+      "false_positive_rate_pct": 0.0,
+      "mean_rfd_golden": 0.030769413562728647,
+      "mean_rfd_trojan": 22.954224607298396,
+      "dynamic_separation_margin": 746.0078678378554
+    }
+  }
+}

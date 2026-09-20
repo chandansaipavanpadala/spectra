@@ -16,6 +16,9 @@ All structured datasets are serialized in standard **JSON (RFC 8259)** format wi
 | [`clustering_results.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/clustering_results.json) | JSON | `scripts/02_fcc_sea_clustering.py` | ~7.6 KB | FCM cluster centroids ($\mu_G, \mu_T$), SEA energy integrals, and convergence logs |
 | [`pca_subspace.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/pca_subspace.json) | JSON | `scripts/03_pca_dimension_reduc.py` | ~58 KB | Top-10 PCA projection matrix ($\mathbf{coeff}$), score matrices ($sc_g, sc_t$), and covariance matrices |
 | [`detection_report.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/detection_report.json) | JSON | `scripts/04_fusion_classifier.py` | ~8.8 KB | Adaptive fusion weights ($a_1, a_2$), confusion matrix, and per-chip decision ratios ($R_{FD}$) |
+| [`noise_robustness_results.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/noise_robustness_results.json) | JSON | `scripts/05_noise_robustness_sweep.py` | ~3.4 KB | SNR sweep (30 to 5 dB) and clock drift sweep (0.0% to 3.0%) comparing He et al. vs. SPECTRA AHBE |
+| [`multi_benchmark_report.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/multi_benchmark_report.json) | JSON | `scripts/06_benchmark_generalization.py` | ~2.6 KB | Cross-benchmark metrics across Implicit Counter, Trust-HUB AES-T400, and Trust-HUB AES-T800 |
+| [`fpga_hardware_utilization.json`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/fpga_hardware_utilization.json) | JSON | `scripts/07_synth_utilization_table.py` | ~2.5 KB | Post-synthesis LUT, FF, dynamic power, and Fmax on Xilinx Artix-7 and Spartan-3E |
 | [`power_trace_golden.csv`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/power_trace_golden.csv) | CSV | `src/tb_sidechannel.v` | Variable | Cycle-by-cycle power proxy trace log for the golden AES core |
 | [`power_trace_trojan.csv`](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/B.Tech/4th%20Year/7th%20Semester/Hardware%20Security%20and%20Trust/Project/spectra/reports/power_trace_trojan.csv) | CSV | `src/tb_sidechannel.v` | Variable | Cycle-by-cycle power proxy trace log for the Trojan-infected core |
 
@@ -24,6 +27,9 @@ All structured datasets are serialized in standard **JSON (RFC 8259)** format wi
 - **`clustering_results.json`:** Unsupervised learning artifact recording the convergence trajectory (5 iterations) of Fuzzy C-Means clustering, the two 129-D cluster centroids ($\mu_G, \mu_T$), and the Spectral Energy Analysis (SEA) integrals proving $\int |V_T|^2 > \int |V_G|^2$.
 - **`pca_subspace.json`:** Dimensionality reduction model containing the top-10 principal axis projection matrix ($\mathbf{coeff}_{129 \times 10}$), accounting for 100.00% cumulative variance, alongside projected training score matrices and well-conditioned intra-class covariance matrices.
 - **`detection_report.json`:** Comprehensive validation benchmark report detailing optimal entropy-derived distance fusion weights ($a_1 = 0.8311, a_2 = 0.1689$), final classification metrics (100.00% Accuracy, 0.00% FPR), and per-chip Euclidean, Mahalanobis, and Fusion Distance ratios ($R_{FD}$).
+- **`noise_robustness_results.json`:** Sensitivity report capturing classification accuracy, false positive rates, and dynamic separation margins across SNR ($30\text{ dB} \to 5\text{ dB}$) and clock drift ($0.0\% \to 3.0\%$), comparing Baseline He et al. discrete sampling vs. SPECTRA AHBE continuous band integration.
+- **`multi_benchmark_report.json`:** Threat generalization benchmark report validating 100.00% detection accuracy and autonomous SEA cluster identification across Implicit Counter, Trust-HUB AES-T400, and Trust-HUB AES-T800 under 6% inter-die PVT variation.
+- **`fpga_hardware_utilization.json`:** Hardware synthesis and resource overhead report mapping Golden and Trojan AES-128 cores onto Xilinx Artix-7 (`xc7a35tcsg324-1`) and Spartan-3E (`xc3s500e-4fg320`), confirming $\Delta\text{Area} \le 0.15\%$ and $\Delta\text{Power} \le 0.10\%$.
 - **`power_trace_golden.csv`:** Raw cycle-by-cycle time-domain power proxy trace captured from the simulated golden AES-128 core during low-toggle cryptographic operations, logging instantaneous dynamic switching activity.
 - **`power_trace_trojan.csv`:** Raw cycle-by-cycle time-domain power proxy trace captured from the simulated Trojan-infected AES core, reflecting subtle capacitive modulation induced by the dormant 2-bit counter payload.
 
@@ -202,6 +208,115 @@ Details the final post-silicon validation metrics, adaptive distance weights, an
     - Golden chips cluster at $R_{FD} \approx 2.78 \times 10^{-4} \ll 1.0$ (range $0.000226$ to $0.000329$).
     - Trojan chips cluster at $R_{FD} \approx 3762.58 \gg 1.0$ (range $2372.35$ to $8566.01$).
     - Dynamic separation margin exceeds $10^7$, ensuring zero classification ambiguity.
+
+---
+
+### 3.5 `noise_robustness_results.json`
+
+Records sensitivity metrics across the SNR degradation sweep ($30\text{ dB} \to 5\text{ dB}$) and clock frequency drift sweep ($0.0\% \to 3.0\%$).
+
+```json
+{
+  "sweep_configuration": {
+    "sampling_frequency_hz": 2500000000.0,
+    "nominal_clock_hz": 10000000.0,
+    "sample_points": 1000000,
+    "chips_per_run": 48,
+    "ahbe_bandwidth_khz": 1000.0,
+    "window_half_width_khz": 500.0
+  },
+  "snr_sensitivity_sweep": {
+    "snr_db": [30, 25, 20, 15, 10, 5],
+    "method_a_he": {
+      "accuracy": [58.33, 56.25, 50.00, 52.08, 58.33, 72.92],
+      "fpr": [83.33, 87.50, 87.50, 83.33, 70.83, 41.67],
+      "sep_margin": [8.50, 4.59, 2.57, 2.52, 2.73, 1.98]
+    },
+    "method_b_spectra": {
+      "accuracy": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+      "fpr": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      "sep_margin": [27411.43, 27622.38, 25957.84, 22689.73, 16335.16, 9804.39]
+    }
+  }
+}
+```
+
+---
+
+### 3.6 `multi_benchmark_report.json`
+
+Captures cross-benchmark detection metrics across three standard hardware Trojan threat profiles.
+
+```json
+{
+  "evaluation_scope": "Multi-Trojan Threat Generalization",
+  "inter_die_process_variation": "6% Inter-Die Gaussian PVT",
+  "benchmarks_evaluated": {
+    "counter_he": "Implicit 2-Bit Counter (He et al.)",
+    "aes_t400": "Trust-HUB AES-T400 (Combinational)",
+    "aes_t800": "Trust-HUB AES-T800 (Sequential)"
+  },
+  "results": {
+    "counter_he": {
+      "sea_verified": true,
+      "accuracy_pct": 100.0,
+      "precision_pct": 100.0,
+      "recall_pct": 100.0,
+      "false_positive_rate_pct": 0.0,
+      "mean_rfd_golden": 0.0292,
+      "mean_rfd_trojan": 29.91,
+      "dynamic_separation_margin": 1024.83
+    },
+    "aes_t400": {
+      "sea_verified": true,
+      "accuracy_pct": 100.0,
+      "precision_pct": 100.0,
+      "recall_pct": 100.0,
+      "false_positive_rate_pct": 0.0,
+      "mean_rfd_golden": 0.0245,
+      "mean_rfd_trojan": 52.35,
+      "dynamic_separation_margin": 2132.65
+    },
+    "aes_t800": {
+      "sea_verified": true,
+      "accuracy_pct": 100.0,
+      "precision_pct": 100.0,
+      "recall_pct": 100.0,
+      "false_positive_rate_pct": 0.0,
+      "mean_rfd_golden": 0.0308,
+      "mean_rfd_trojan": 22.95,
+      "dynamic_separation_margin": 746.01
+    }
+  }
+}
+```
+
+---
+
+### 3.7 `fpga_hardware_utilization.json`
+
+Details placed-and-routed FPGA resource utilization, dynamic power dissipation, and timing margins on Artix-7 and Spartan-3E.
+
+```json
+{
+  "devices": {
+    "artix7": {
+      "part": "xc7a35tcsg324-1",
+      "family": "Xilinx Artix-7 (28nm)",
+      "golden": {"slice_luts": 2145, "slice_ffs": 264, "dynamic_power_mw": 12.45, "critical_path_delay_ns": 4.82, "fmax_mhz": 207.47},
+      "trojan": {"slice_luts": 2147, "slice_ffs": 268, "dynamic_power_mw": 12.46, "critical_path_delay_ns": 4.83, "fmax_mhz": 207.04},
+      "overhead": {"delta_lut_pct": 0.0932, "delta_power_pct": 0.0803, "stealth_criteria_met": true}
+    },
+    "spartan3e": {
+      "part": "xc3s500e-4fg320",
+      "family": "Xilinx Spartan-3E (90nm, He et al. Target)",
+      "golden": {"slice_luts": 3842, "slice_ffs": 264, "dynamic_power_mw": 38.60, "critical_path_delay_ns": 11.24, "fmax_mhz": 88.97},
+      "trojan": {"slice_luts": 3846, "slice_ffs": 268, "dynamic_power_mw": 38.63, "critical_path_delay_ns": 11.26, "fmax_mhz": 88.81},
+      "overhead": {"delta_lut_pct": 0.1041, "delta_power_pct": 0.0777, "stealth_criteria_met": true}
+    }
+  }
+}
+```
 
 ---
 
