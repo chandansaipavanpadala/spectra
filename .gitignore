@@ -13,7 +13,6 @@
 *.sim/
 *.ip_user_files/
 *.gen/
-lp_rtm.sim/
 spectra.sim/
 spectra.cache/
 spectra.hw/
