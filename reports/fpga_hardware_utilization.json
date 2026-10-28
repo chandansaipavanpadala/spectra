@@ -27,6 +27,8 @@
         "lut_utilization_pct": 10.3125,
         "slice_ffs": 264,
         "ff_utilization_pct": 0.6346153846153846,
+        "fully_used_lut_ff_pairs": 248,
+        "pair_utilization_pct": 1.1923076923076923,
         "dynamic_power_mw": 12.45,
         "critical_path_delay_ns": 4.82,
         "fmax_mhz": 207.4688796680498
@@ -36,6 +38,8 @@
         "lut_utilization_pct": 10.322115384615385,
         "slice_ffs": 268,
         "ff_utilization_pct": 0.6442307692307693,
+        "fully_used_lut_ff_pairs": 250,
+        "pair_utilization_pct": 1.201923076923077,
         "dynamic_power_mw": 12.46,
         "critical_path_delay_ns": 4.83,
         "fmax_mhz": 207.0393374741201
@@ -45,6 +49,8 @@
         "delta_lut_pct": 0.09324009324009325,
         "delta_ff_count": 4,
         "delta_ff_pct": 1.5151515151515151,
+        "delta_pairs_count": 2,
+        "delta_pairs_pct": 0.8064516129032258,
         "delta_power_mw": 0.010000000000001563,
         "delta_power_pct": 0.08032128514057481,
         "delta_delay_pct": 0.20746887966804536,
@@ -59,6 +65,8 @@
         "lut_utilization_pct": 41.258591065292094,
         "slice_ffs": 264,
         "ff_utilization_pct": 2.8350515463917527,
+        "fully_used_lut_ff_pairs": 2120,
+        "pair_utilization_pct": 45.53264604810997,
         "dynamic_power_mw": 38.6,
         "critical_path_delay_ns": 11.24,
         "fmax_mhz": 88.9679715302491
@@ -68,6 +76,8 @@
         "lut_utilization_pct": 41.301546391752574,
         "slice_ffs": 268,
         "ff_utilization_pct": 2.8780068728522337,
+        "fully_used_lut_ff_pairs": 2122,
+        "pair_utilization_pct": 45.57560137457045,
         "dynamic_power_mw": 38.63,
         "critical_path_delay_ns": 11.26,
         "fmax_mhz": 88.80994671403198
@@ -77,6 +87,8 @@
         "delta_lut_pct": 0.10411244143675169,
         "delta_ff_count": 4,
         "delta_ff_pct": 1.5151515151515151,
+        "delta_pairs_count": 2,
+        "delta_pairs_pct": 0.09433962264150944,
         "delta_power_mw": 0.030000000000001137,
         "delta_power_pct": 0.07772020725388895,
         "delta_delay_pct": 0.17793594306049443,

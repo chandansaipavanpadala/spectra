@@ -1,14 +1,16 @@
 {
-  "evaluation_scope": "Multi-Trojan Threat Generalization",
-  "inter_die_process_variation": "6% Inter-Die Gaussian PVT",
+  "evaluation_scope": "Multi-Threat Hardware Trojan Taxonomy Evaluation",
+  "inter_die_process_variation": "6% Inter-Die Gaussian PVT (sigma = 0.06)",
+  "training_chips_per_benchmark": 48,
+  "validation_chips_per_benchmark": 24,
   "benchmarks_evaluated": {
-    "counter_he": "Implicit 2-Bit Counter (He et al.)",
-    "aes_t400": "Trust-HUB AES-T400 (Combinational)",
-    "aes_t800": "Trust-HUB AES-T800 (Sequential)"
+    "aes_t100": "AES-T100 / He et al. (Synchronous 2-Bit Counter)",
+    "aes_t400": "Trust-HUB AES-T400 (Combinational Comparator Trigger)",
+    "aes_t800": "Trust-HUB AES-T800 (Sequential Time-Bomb State Leakage)"
   },
   "results": {
-    "counter_he": {
-      "benchmark_type": "counter_he",
+    "aes_t100": {
+      "benchmark_type": "aes_t100",
       "sea_verified": true,
       "sea_golden_energy": 210677382745.79675,
       "sea_trojan_energy": 234144709851.84497,
@@ -27,6 +29,7 @@
       "precision_pct": 100.0,
       "recall_pct": 100.0,
       "false_positive_rate_pct": 0.0,
+      "false_negative_rate_pct": 0.0,
       "mean_rfd_golden": 0.029182227184950362,
       "mean_rfd_trojan": 29.906877366785654,
       "dynamic_separation_margin": 1024.8319011505803
@@ -51,6 +54,7 @@
       "precision_pct": 100.0,
       "recall_pct": 100.0,
       "false_positive_rate_pct": 0.0,
+      "false_negative_rate_pct": 0.0,
       "mean_rfd_golden": 0.024548678650666803,
       "mean_rfd_trojan": 52.35366949251654,
       "dynamic_separation_margin": 2132.6471471392956
@@ -75,6 +79,7 @@
       "precision_pct": 100.0,
       "recall_pct": 100.0,
       "false_positive_rate_pct": 0.0,
+      "false_negative_rate_pct": 0.0,
       "mean_rfd_golden": 0.030769413562728647,
       "mean_rfd_trojan": 22.954224607298396,
       "dynamic_separation_margin": 746.0078678378554

@@ -703,10 +703,10 @@ representing over seven orders of magnitude separation between the benign and ma
 
 \section{Process-Voltage-Temperature (PVT) \& Noise Sensitivity Analysis}
 
-In physical silicon environments, side-channel power measurements are degraded by ambient thermal noise and crystal oscillator drift. To rigorously benchmark the noise resilience of SPECTRA against the baseline architecture of He et al. [2024], an exhaustive stress sweep was conducted across $P = 48$ chips per condition with calibrated additive Gaussian noise and oscillator frequency drift:
+In physical silicon environments, side-channel power measurements are degraded by ambient thermal noise and crystal oscillator drift. To rigorously benchmark the noise resilience of SPECTRA against the baseline architecture of He et al. [2024], an exhaustive stress sweep was conducted across $P_{\text{train}} = 48$ training chips (24 Golden, 24 Trojan) and $P_{\text{val}} = 24$ validation chips (12 Golden, 12 Trojan) per condition with calibrated additive Gaussian noise, $\sigma_{\text{PV}} = 6\%$ inter-die process variation, and oscillator frequency drift:
 \begin{itemize}[leftmargin=1.5em]
   \item \textbf{Signal-to-Noise Ratio (SNR) Sweep:} Swept from $30\text{ dB}$ down to $5\text{ dB}$ in $-5\text{ dB}$ steps.
-  \item \textbf{Oscillator Frequency Drift Sweep:} Swept from $\Delta f_{\text{clk}} = 0.0\%$ to $\pm 3.0\%$ to model thermal PLL wander and clock phase jitter.
+  \item \textbf{Oscillator Frequency Drift Sweep:} Swept from $\Delta f_{\text{clk}} = 0.0\%$ to $\pm 3.0\%$ in $0.5\%$ increments to model thermal PLL wander and clock phase jitter.
   \item \textbf{Method A (Baseline He et al.):} Discrete single-bin sampling using Eq. (3): $EV[k] = |D(\mathrm{round}(f_k / \Delta f))|$.
   \item \textbf{Method B (SPECTRA AHBE):} Adaptive Harmonic Band Energy integrating continuous power over $\mathcal{B}_k = [f_k - 500\text{ kHz}, f_k + 500\text{ kHz}]$.
 \end{itemize}
@@ -714,7 +714,7 @@ In physical silicon environments, side-channel power measurements are degraded b
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.96\textwidth]{../screenshots/noise_robustness_sweep.png}
-\caption{Process Variation \& SNR Sensitivity Sweep: (Panel 1) Classification Accuracy vs. SNR (dB) comparing Baseline He et al. vs. SPECTRA AHBE; (Panel 2) Dynamic Separation Margin vs. Clock Frequency Drift (\%).}
+\caption{Process Variation \& SNR Sensitivity Sweep: (Panel 1) Classification Accuracy vs. SNR (dB) comparing Baseline He et al. vs. SPECTRA AHBE; (Panel 2) Dynamic Separation Margin ($R_{FD,T} / R_{FD,G}$) vs. Clock Frequency Drift ($\pm \%$).}
 \label{fig:noise_robustness_sweep}
 \end{figure}
 
@@ -722,39 +722,40 @@ Table~\ref{tab:snr_robustness} details the comparative quantitative detection me
 
 \begin{table}[htbp]
 \centering
-\small
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}c c c c c c}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}c c c c c c c c}
 \toprule
-\textbf{SNR (dB)} & \multicolumn{2}{c}{\textbf{Baseline He et al. [2024]}} & \multicolumn{3}{c}{\textbf{SPECTRA (Ours)}} \\
-\cmidrule{2-3} \cmidrule{4-6}
-& \textbf{Accuracy (\%)} & \textbf{FPR (\%)} & \textbf{Accuracy (\%)} & \textbf{FPR (\%)} & \textbf{Separation Margin} \\
+\textbf{SNR (dB)} & \multicolumn{3}{c}{\textbf{Baseline He et al. [2024]}} & \multicolumn{4}{c}{\textbf{SPECTRA (Ours)}} \\
+\cmidrule{2-4} \cmidrule{5-8}
+& \textbf{Acc. (\%)} & \textbf{FPR (\%)} & \textbf{FNR (\%)} & \textbf{Acc. (\%)} & \textbf{FPR (\%)} & \textbf{FNR (\%)} & \textbf{Separation Margin} \\
 \midrule
-$30\text{ dB}$ & 58.33\% & 83.33\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{2.74 \times 10^4}$ \\
-$25\text{ dB}$ & 56.25\% & 87.50\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{2.76 \times 10^4}$ \\
-$20\text{ dB}$ & 50.00\% & 87.50\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{2.60 \times 10^4}$ \\
-$15\text{ dB}$ & 52.08\% & 83.33\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{2.27 \times 10^4}$ \\
-$10\text{ dB}$ & 58.33\% & 70.83\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{1.63 \times 10^4}$ \\
-$5\text{ dB}$  & 72.92\% & 41.67\% & \textbf{100.00\%} & \textbf{0.00\%} & $\mathbf{9.80 \times 10^3}$ \\
+$30\text{ dB}$ & 45.83\% & 100.00\% & 8.33\% & \textbf{100.00\%} & \textbf{0.00\%} & \textbf{0.00\%} & $\mathbf{4.57 \times 10^3}$ \\
+$25\text{ dB}$ & 45.83\% & 100.00\% & 8.33\% & \textbf{100.00\%} & \textbf{0.00\%} & \textbf{0.00\%} & $\mathbf{4.74 \times 10^3}$ \\
+$20\text{ dB}$ & 41.67\% & 100.00\% & 16.67\% & \textbf{100.00\%} & \textbf{0.00\%} & \textbf{0.00\%} & $\mathbf{4.76 \times 10^3}$ \\
+$15\text{ dB}$ & 41.67\% & 83.33\%  & 33.33\% & \textbf{100.00\%} & \textbf{0.00\%} & \textbf{0.00\%} & $\mathbf{4.60 \times 10^3}$ \\
+$10\text{ dB}$ & 45.83\% & 66.67\%  & 41.67\% & \textbf{100.00\%} & \textbf{0.00\%} & \textbf{0.00\%} & $\mathbf{3.95 \times 10^3}$ \\
+$5\text{ dB}$  & 50.00\% & 83.33\%  & 16.67\% & \textbf{100.00\%} & \textbf{0.00\%} & \textbf{0.00\%} & $\mathbf{2.57 \times 10^3}$ \\
 \bottomrule
 \end{tabular*}
-\caption{SNR Sensitivity Sweep: Baseline He et al. vs. SPECTRA AHBE}
+\caption{SNR Sensitivity Sweep: Baseline He et al. vs. SPECTRA AHBE under 6\% Process Variation}
 \label{tab:snr_robustness}
 \end{table}
 
-As evidenced by Table~\ref{tab:snr_robustness} and Figure~\ref{fig:noise_robustness_sweep}, discrete single-bin sampling is severely vulnerable to clock frequency drift and spectral leakage: when the real clock shifts away from the nominal grid, single-bin sampling measures the noise floor, causing He et al. accuracy to collapse to $50.0\%$--$72.9\%$. Conversely, SPECTRA AHBE continuously integrates spectral energy within symmetric $\pm 500\text{ kHz}$ bands, capturing the shifted harmonic peaks and maintaining $100.00\%$ accuracy and $0.00\%$ FPR down to $5\text{ dB}$ SNR with separation margins exceeding $9.8 \times 10^3$.
+As evidenced by Table~\ref{tab:snr_robustness} and Figure~\ref{fig:noise_robustness_sweep}, discrete single-bin sampling is severely vulnerable to clock frequency drift and spectral leakage: when the real clock shifts away from the nominal grid, single-bin sampling measures the noise floor, causing He et al. accuracy to collapse to $41.67\%$--$50.00\%$ with false positive rates of $66.67\%$--$100.00\%$ and false negative rates up to $41.67\%$. Furthermore, as clock drift increases to $\pm 3.0\%$, the separation margin of He et al. collapses to $0.96$, completely losing the ability to distinguish malicious chips. Conversely, SPECTRA AHBE continuously integrates spectral energy within symmetric $\pm 500\text{ kHz}$ bands, capturing the shifted harmonic peaks and maintaining $100.00\%$ accuracy, $0.00\%$ FPR, and $0.00\%$ FNR down to $5\text{ dB}$ SNR with separation margins exceeding $2.57 \times 10^3$.
 
 \section{Cross-Benchmark Generalization across Trust-HUB Threat Profiles}
 
 To validate architectural generalizability, SPECTRA was evaluated against three distinct hardware Trojan threat classes spanning standard Trust-HUB benchmark models and hardware security taxonomies:
 \begin{enumerate}[leftmargin=1.5em]
-  \item \textbf{Implicit Synchronous Counter (He et al. Baseline):} Synchronous 2-bit counter payload ($\sim 0.1\%$ area overhead) modulating localized inter-harmonic side-bands at $1.5 f_{\text{clk}}$, $2.5 f_{\text{clk}}$, and $3.5 f_{\text{clk}}$ ($15\text{ MHz}$, $25\text{ MHz}$, $35\text{ MHz}$).
+  \item \textbf{Implicit Synchronous Counter (AES-T100 / He et al. Baseline):} Synchronous 2-bit counter payload ($\sim 0.1\%$ area overhead) modulating localized inter-harmonic side-bands at $1.5 f_{\text{clk}}$, $2.5 f_{\text{clk}}$, and $3.5 f_{\text{clk}}$ ($15\text{ MHz}$, $25\text{ MHz}$, $35\text{ MHz}$).
   \item \textbf{Combinational Comparator Trigger (Trust-HUB AES-T400 Equivalent):} Rare 32-bit datapath state comparator asserting an internal combinational condition, inducing localized supply rail droop ($\Delta V_{\text{dd}}$) and transient harmonic redistribution.
   \item \textbf{Sequential Time-Bomb Key Leakage (Trust-HUB AES-T800 Equivalent):} Multi-stage sequential timer counting operational cycles that triggers key-bit leakage via periodic capacitive switching bursts.
 \end{enumerate}
 
-For each benchmark class, $P = 48$ training chips and $P_{\text{val}} = 24$ validation chips were synthesized under $6\%$ inter-die Gaussian PVT variation. The Spectral Energy Analysis (SEA) theorem was verified across all three threat profiles:
+For each benchmark class, $P_{\text{train}} = 48$ training chips and $P_{\text{val}} = 24$ validation chips were synthesized under $6\%$ inter-die Gaussian PVT variation ($\sigma_{\text{PV}} = 0.06$). The Spectral Energy Analysis (SEA) theorem was verified across all three threat profiles:
 \begin{align}
-\text{Counter (He et al.):} \quad & \int |V_T(f)|^2 df = 2.341 \times 10^{11} > \int |V_G(f)|^2 df = 2.107 \times 10^{11} \\
+\text{AES-T100 (He et al.):} \quad & \int |V_T(f)|^2 df = 2.341 \times 10^{11} > \int |V_G(f)|^2 df = 2.107 \times 10^{11} \\
 \text{AES-T400 (Comb.):} \quad & \int |V_T(f)|^2 df = 2.370 \times 10^{11} > \int |V_G(f)|^2 df = 2.108 \times 10^{11} \\
 \text{AES-T800 (Seq.):} \quad & \int |V_T(f)|^2 df = 2.253 \times 10^{11} > \int |V_G(f)|^2 df = 2.107 \times 10^{11}
 \end{align}
@@ -771,14 +772,14 @@ Table~\ref{tab:multi_benchmark} summarizes the multi-benchmark validation perfor
 \begin{table}[htbp]
 \centering
 \footnotesize
-\setlength{\tabcolsep}{5pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c c c c}
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c c c c c c}
 \toprule
-\textbf{Benchmark Class} & \textbf{Acc. (\%)} & \textbf{Prec. (\%)} & \textbf{Recall (\%)} & \textbf{FPR (\%)} & $\overline{R}_{FD,G}$ & $\overline{R}_{FD,T}$ \\
+\textbf{Benchmark Class} & \textbf{Acc. (\%)} & \textbf{Prec. (\%)} & \textbf{Recall (\%)} & \textbf{FPR (\%)} & \textbf{FNR (\%)} & $\overline{R}_{FD,G}$ & $\overline{R}_{FD,T}$ & \textbf{Margin} \\
 \midrule
-\textbf{Implicit Counter (He et al.)} & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.0292 & 29.91 \\
-\textbf{AES-T400 (Combinational)} & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.0245 & 52.35 \\
-\textbf{AES-T800 (Sequential)} & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.0308 & 22.95 \\
+\textbf{AES-T100 (Sync.)} & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.00\% & 0.0292 & 29.91 & $1.02 \times 10^3$ \\
+\textbf{AES-T400 (Comb.)} & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.00\% & 0.0245 & 52.35 & $2.13 \times 10^3$ \\
+\textbf{AES-T800 (Seq.)}  & 100.00\% & 100.00\% & 100.00\% & 0.00\% & 0.00\% & 0.0308 & 22.95 & $7.46 \times 10^2$ \\
 \bottomrule
 \end{tabular*}
 \caption{Cross-Benchmark Detection Performance across Threat Profiles}
@@ -798,22 +799,24 @@ Table~\ref{tab:fpga_synthesis} presents the complete post-synthesis resource uti
 \begin{table}[htbp]
 \centering
 \footnotesize
-\setlength{\tabcolsep}{3.5pt}
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c c}
 \toprule
 \textbf{Target Architecture / Metric} & \textbf{Golden Core} & \textbf{Trojan Core} & \textbf{Overhead ($\Delta$)} & \textbf{Stealth Bound} \\
 \midrule
 \multicolumn{5}{l}{\textbf{Xilinx Artix-7 (\texttt{xc7a35tcsg324-1}, 28nm)}} \\
-\quad Slice LUTs (Count / Util.) & 2,145 (10.31\%) & 2,147 (10.32\%) & +2 (+0.093\%) & $\le 0.15\%$ [PASS] \\
+\quad Slice LUTs (Count / Util.) & 2,145 (10.31\%) & 2,147 (10.32\%) & +2 (+0.0932\%) & $\le 0.15\%$ [PASS] \\
 \quad Slice Registers / FFs & 264 (0.63\%) & 268 (0.64\%) & +4 (+1.52\%) & -- \\
-\quad Dynamic Power @ 10 MHz & 12.450 mW & 12.460 mW & +0.010 mW (+0.080\%) & $\le 0.10\%$ [PASS] \\
+\quad Fully Used LUT-FF Pairs & 248 (1.19\%) & 250 (1.20\%) & +2 (+0.81\%) & -- \\
+\quad Dynamic Power @ 10 MHz & 12.450 mW & 12.460 mW & +0.0100 mW (+0.0803\%) & $\le 0.10\%$ [PASS] \\
 \quad Critical Path Delay ($T_{\text{crit}}$) & 4.820 ns & 4.830 ns & +0.21\% & -- \\
 \quad Maximum Frequency ($F_{\max}$) & 207.47 MHz & 207.04 MHz & -0.43 MHz & -- \\
 \midrule
 \multicolumn{5}{l}{\textbf{Xilinx Spartan-3E (\texttt{xc3s500e-4fg320}, 90nm He et al. Target)}} \\
-\quad Slice LUTs (Count / Util.) & 3,842 (41.26\%) & 3,846 (41.30\%) & +4 (+0.104\%) & $\le 0.15\%$ [PASS] \\
+\quad Slice LUTs (Count / Util.) & 3,842 (41.26\%) & 3,846 (41.30\%) & +4 (+0.1041\%) & $\le 0.15\%$ [PASS] \\
 \quad Slice Registers / FFs & 264 (2.84\%) & 268 (2.88\%) & +4 (+1.52\%) & -- \\
-\quad Dynamic Power @ 10 MHz & 38.600 mW & 38.630 mW & +0.030 mW (+0.078\%) & $\le 0.10\%$ [PASS] \\
+\quad Fully Used Slices / Pairs & 2,120 (45.53\%) & 2,122 (45.58\%) & +2 (+0.09\%) & -- \\
+\quad Dynamic Power @ 10 MHz & 38.600 mW & 38.630 mW & +0.0300 mW (+0.0777\%) & $\le 0.10\%$ [PASS] \\
 \quad Critical Path Delay ($T_{\text{crit}}$) & 11.240 ns & 11.260 ns & +0.18\% & -- \\
 \quad Maximum Frequency ($F_{\max}$) & 88.97 MHz & 88.81 MHz & -0.16 MHz & -- \\
 \bottomrule
