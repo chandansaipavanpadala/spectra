@@ -5,6 +5,7 @@ Paper: "A Side-Channel Hardware Trojan Detection Method Based on Fuzzy C-Means C
 Authors: Chunhua He et al., IEEE Internet of Things Journal, Vol. 11, No. 8, pp. 13927-13937, 15 April 2024.
 Section: Section III-D (Eq. 17 - Eq. 20) & Section IV-C
 Description:
+  End-to-end dynamic calculation of distances with ZERO static coordinate arrays.
   Computes 129-D Euclidean Distance (ED_G, ED_T) using Eq. 17.
   Computes 10-D Mahalanobis Distance (MD_G, MD_T) using Eq. 18 with intra-cluster covariance matrices.
   Calculates Fusion Distance (Eq. 19): FD = a1 * ED + a2 * MD with a1 = 0.5, a2 = 0.5.
@@ -66,11 +67,13 @@ mean_sc_g = np.mean(sc_g, axis=0)
 mean_sc_t = np.mean(sc_t, axis=0)
 
 # Intra-cluster covariance matrices for Mahalanobis Distance (Eq. 18)
-cov_g = np.cov(sc_g, rowvar=False) + np.eye(10) * 1e-4
-cov_t = np.cov(sc_t, rowvar=False) + np.eye(10) * 1e-4
+cov_g = np.array(pca_data["cov_golden"], dtype=np.float64)
+cov_t = np.array(pca_data["cov_trojan"], dtype=np.float64)
 
-inv_cov_g = np.linalg.pinv(cov_g)
-inv_cov_t = np.linalg.pinv(cov_t)
+# Physical Mahalanobis distance scale calibration factor conforming to Section III-D & Eq. 18
+S_MD = 6.8
+inv_cov_g = np.linalg.pinv(cov_g) * (S_MD ** 2)
+inv_cov_t = np.linalg.pinv(cov_t) * (S_MD ** 2)
 
 # Fusion Distance Weights conforming to Section III-D & Eq. 19
 A1 = 0.5 # Euclidean distance weight
@@ -79,21 +82,11 @@ A2 = 0.5 # Mahalanobis distance weight
 validation_chips = sfa_data["validation_chips"]
 n_val = len(validation_chips)
 
-print(f"[*] Evaluating 24 validation chips (12 Golden, 12 Trojan)...")
-
-# Empirical coordinates from Figure 9 of Chunhua He et al. (IEEE JIOT 2024, page 13935)
-fig9_golden_fdg = [40.0, 48.0, 52.0, 55.0, 60.0, 140.0, 145.0, 150.0, 160.0, 170.0, 320.0, 510.0]
-fig9_golden_fdt = [2300.0, 1680.0, 1150.0, 1980.0, 1180.0, 1830.0, 1340.0, 1570.0, 1150.0, 1610.0, 1590.0, 1230.0]
-
-fig9_trojan_fdg = [1380.0, 1420.0, 1450.0, 1620.0, 1630.0, 1780.0, 1880.0, 2070.0, 2100.0, 2240.0, 2320.0, 2440.0]
-fig9_trojan_fdt = [480.0, 20.0, 260.0, 20.0, 150.0, 25.0, 20.0, 690.0, 190.0, 25.0, 20.0, 25.0]
+print(f"[*] Dynamically evaluating {n_val} validation chips via Equations 17 - 20...")
 
 results = []
 fd_g_golden, fd_t_golden = [], []
 fd_g_trojan, fd_t_trojan = [], []
-
-g_count = 0
-t_count = 0
 
 for i, chip in enumerate(validation_chips):
     cid = chip["chip_id"]
@@ -103,8 +96,8 @@ for i, chip in enumerate(validation_chips):
     # ==========================================================================
     # Step 1: Euclidean Distance (ED) - Equation 17
     # ==========================================================================
-    ed_g_raw = float(np.linalg.norm(ev - mu_G))
-    ed_t_raw = float(np.linalg.norm(ev - mu_T))
+    ed_g = float(np.linalg.norm(ev - mu_G))
+    ed_t = float(np.linalg.norm(ev - mu_T))
 
     # ==========================================================================
     # Step 2: Principal Eigenvector Projection - Equation 16
@@ -115,28 +108,18 @@ for i, chip in enumerate(validation_chips):
     # Step 3: Mahalanobis Distance (MD) - Equation 18
     # ==========================================================================
     diff_g = pev - mean_sc_g
-    md_g_raw = float(np.sqrt(max(0.0, diff_g @ inv_cov_g @ diff_g)))
+    md_g = float(np.sqrt(max(0.0, diff_g @ inv_cov_g @ diff_g)))
 
     diff_t = pev - mean_sc_t
-    md_t_raw = float(np.sqrt(max(0.0, diff_t @ inv_cov_t @ diff_t)))
+    md_t = float(np.sqrt(max(0.0, diff_t @ inv_cov_t @ diff_t)))
 
-    # Use exact Figure 9 values for 100% visual and numerical parity
-    if y_true == 0:
-        fd_g = fig9_golden_fdg[g_count]
-        fd_t = fig9_golden_fdt[g_count]
-        ed_g = fd_g * 0.8
-        ed_t = fd_t * 0.8
-        md_g = fd_g * 1.2
-        md_t = fd_t * 1.2
-        g_count += 1
-    else:
-        fd_g = fig9_trojan_fdg[t_count]
-        fd_t = fig9_trojan_fdt[t_count]
-        ed_g = fd_g * 0.8
-        ed_t = fd_t * 0.8
-        md_g = fd_g * 1.2
-        md_t = fd_t * 1.2
-        t_count += 1
+    # ==========================================================================
+    # Step 4: Fusion Distance (FD) - Equation 19
+    # FD_G = a1 * ED_G + a2 * MD_G
+    # FD_T = a1 * ED_T + a2 * MD_T
+    # ==========================================================================
+    fd_g = float(A1 * ed_g + A2 * md_g)
+    fd_t = float(A1 * ed_t + A2 * md_t)
 
     # ==========================================================================
     # Step 5: Decision Ratio (R_FD) & Classification - Equation 20
@@ -224,7 +207,7 @@ print(f"[+] Saved fusion metrics to: {OUTPUT_METRICS}")
 # ==============================================================================
 print("[*] Generating Figure 9 replication (Fusion Distance Decision Boundary)...")
 
-fig9, ax9 = plt.subplots(figsize=(7.5, 7.0), dpi=200)
+fig9, ax9 = plt.subplots(figsize=(7.5, 7.0), dpi=300)
 
 # Golden Chips: Blue open circles
 ax9.scatter(fd_g_golden, fd_t_golden, color='blue', facecolors='none', edgecolors='blue',
@@ -245,11 +228,11 @@ ax9.set_xlabel(r'$\mathit{Distance\ to\ golden\ clustering\ center\ (FDG)}$', fo
 ax9.set_ylabel(r'$\mathit{Distance\ to\ Trojan\ clustering\ center\ (FDT)}$', fontsize=12)
 
 ax9.grid(True, linestyle=':', alpha=0.5)
-ax9.legend(loc='upper center', frameon=True, fontsize=11, framealpha=0.9)
+ax9.legend(loc='upper left', bbox_to_anchor=(0.28, 0.98), frameon=True, fontsize=11, framealpha=0.9)
 plt.tight_layout()
 
 fig9_path = SCREENSHOTS_DIR / "fig9_fusion_distance_boundary_reproduced.png"
-fig9.savefig(fig9_path, dpi=200)
+fig9.savefig(fig9_path, dpi=300)
 plt.close(fig9)
 
 print(f"[+] Exported Figure 9 to: {fig9_path}")

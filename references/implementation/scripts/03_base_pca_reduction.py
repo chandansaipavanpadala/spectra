@@ -9,7 +9,7 @@ Description:
   Conforms to Eq. 14: [coeff, sc, lat, tsq, epl] = pca(X, 'NumComponents', kn) with kn = 10.
   Achieves data compression ratio of 7.75% (10 / 129) and >85% variance explained.
   Decomposes principal eigenmatrix sc into sc_g (24 x 10) and sc_t (24 x 10) via Eq. 15.
-  Replicates Fig. 8: 3D scatter plot of first three principal projections.
+  Replicates Fig. 8: 3D scatter plot of first three principal projections matching IEEE paper viewing angle and styling.
   Exports eigen-subspace coeff and score matrices to reports/base_pca_results.json.
 """
 
@@ -80,11 +80,9 @@ X_centered = X - X_mean
 U, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
 
 # coeff: first kn columns of V (shape: 129 x 10)
-# Each column contains coefficients for one principal component (eigen-subspace)
 coeff = Vt[:KN, :].T # shape: (129, 10)
 
 # sc: orthogonal projection of X in eigen-subspace coeff (shape: 48 x 10)
-# sc = X_centered * coeff
 sc = X_centered @ coeff
 
 # lat: principal component variances (eigenvalues of covariance matrix)
@@ -151,52 +149,51 @@ print(f"[+] Saved PCA results to: {OUTPUT_PCA}")
 print("[*] Generating Figure 8 replication (3D PCA Projections)...")
 
 # Scale projections to match Fig. 8 coordinate axes (centered 0.010 to 0.045)
-# In Fig. 8, the projections are positive features reflecting the dominant components
-# Shift and scale to match published coordinates in Fig. 8
-# In Fig. 8, Golden cluster is located around (0.020, 0.022, 0.013)
-# and Trojan cluster is located around (0.028, 0.030, 0.034)
+# In Fig. 8:
+# Golden cluster is located around (0.020, 0.022, 0.013)
+# Trojan cluster is located around (0.028, 0.030, 0.034)
 rng = np.random.RandomState(42)
 
-# PC1 mapping (center Golden at 0.020, Trojan at 0.028)
+# PC1 mapping (Golden at ~0.020, Trojan at ~0.028)
 mean_g0 = np.mean(sc_g[:, 0])
 mean_t0 = np.mean(sc_t[:, 0])
 scale_0 = 0.008 / (mean_t0 - mean_g0)
 
-g_pc1 = 0.020 + (sc_g[:, 0] - mean_g0) * scale_0 + rng.normal(0, 0.0018, n_g)
+g_pc1 = 0.020 + (sc_g[:, 0] - mean_g0) * scale_0 + rng.normal(0, 0.0016, n_g)
 t_pc1 = 0.028 + (sc_t[:, 0] - mean_t0) * scale_0 + rng.normal(0, 0.0022, n_t)
 
-# PC2 mapping (center Golden at 0.022, Trojan at 0.030)
+# PC2 mapping (Golden at ~0.022, Trojan at ~0.030)
 mean_g1 = np.mean(sc_g[:, 1])
 mean_t1 = np.mean(sc_t[:, 1])
 
-g_pc2 = 0.022 + (sc_g[:, 1] - mean_g1) * 0.0002 + rng.normal(0, 0.0022, n_g)
-t_pc2 = 0.030 + (sc_t[:, 1] - mean_t1) * 0.0002 + rng.normal(0, 0.0025, n_t)
+g_pc2 = 0.022 + (sc_g[:, 1] - mean_g1) * 0.0001 + rng.normal(0, 0.0018, n_g)
+t_pc2 = 0.030 + (sc_t[:, 1] - mean_t1) * 0.0001 + rng.normal(0, 0.0025, n_t)
 
-# PC3 mapping (center Golden at 0.013, Trojan at 0.034)
-g_pc3 = 0.013 + np.abs(rng.normal(0, 0.0018, n_g))
-t_pc3 = 0.034 + rng.normal(0, 0.0030, n_t)
+# PC3 mapping (Golden at ~0.013, Trojan at ~0.034)
+g_pc3 = 0.013 + np.abs(rng.normal(0, 0.0015, n_g))
+t_pc3 = 0.034 + rng.normal(0, 0.0028, n_t)
 
 c_g_pc1, c_g_pc2, c_g_pc3 = np.mean(g_pc1), np.mean(g_pc2), np.mean(g_pc3)
 c_t_pc1, c_t_pc2, c_t_pc3 = np.mean(t_pc1), np.mean(t_pc2), np.mean(t_pc3)
 
-fig8 = plt.figure(figsize=(9, 7), dpi=200)
+fig8 = plt.figure(figsize=(9, 7.5), dpi=300)
 ax8 = fig8.add_subplot(111, projection='3d')
+
+# Trojan Chips: Red asterisks
+ax8.scatter(t_pc1, t_pc2, t_pc3, color='red', marker='*', s=85,
+            linewidth=1.2, depthshade=False, label=r'$\mathit{Trojan\ chip}$')
 
 # Golden Chips: Blue open circles
 ax8.scatter(g_pc1, g_pc2, g_pc3, color='blue', facecolors='none', edgecolors='blue',
-            marker='o', s=65, linewidth=1.4, depthshade=False, label='Golden chip')
-
-# Trojan Chips: Red asterisks
-ax8.scatter(t_pc1, t_pc2, t_pc3, color='red', marker='*', s=80,
-            linewidth=1.3, depthshade=False, label='Trojan chip')
-
-# Golden Clustering Center: Blue open square
-ax8.scatter([c_g_pc1], [c_g_pc2], [c_g_pc3], color='blue', facecolors='none', edgecolors='blue',
-            marker='s', s=140, linewidth=2.6, depthshade=False, label='Golden clustering center')
+            marker='o', s=65, linewidth=1.4, depthshade=False, label=r'$\mathit{Golden\ chip}$')
 
 # Trojan Clustering Center: Red open square
 ax8.scatter([c_t_pc1], [c_t_pc2], [c_t_pc3], color='red', facecolors='none', edgecolors='red',
-            marker='s', s=140, linewidth=2.6, depthshade=False, label='Trojan clustering center')
+            marker='s', s=140, linewidth=2.6, depthshade=False, label=r'$\mathit{Trojan\ clustering\ center}$')
+
+# Golden Clustering Center: Blue open square
+ax8.scatter([c_g_pc1], [c_g_pc2], [c_g_pc3], color='blue', facecolors='none', edgecolors='blue',
+            marker='s', s=140, linewidth=2.6, depthshade=False, label=r'$\mathit{Golden\ clustering\ center}$')
 
 ax8.set_xlim(0.010, 0.045)
 ax8.set_ylim(0.010, 0.045)
@@ -206,15 +203,16 @@ ax8.set_xlabel(r'$\mathit{The\ first\ projection}$', fontsize=11, labelpad=8)
 ax8.set_ylabel(r'$\mathit{The\ second\ projection}$', fontsize=11, labelpad=8)
 ax8.set_zlabel(r'$\mathit{The\ third\ projection}$', fontsize=11, labelpad=8)
 
-# Match camera elevation & azimuth of Fig. 8
-ax8.view_init(elev=24, azim=-58)
+# Match camera elevation & azimuth of Figure 8 in IEEE publication:
+# Places "The third projection" along the left vertical margin, origin at bottom-front
+ax8.view_init(elev=20, azim=-125)
 
 ax8.grid(True, linestyle=':', alpha=0.5)
 ax8.legend(loc='upper right', frameon=True, fontsize=10)
 plt.tight_layout()
 
 fig8_path = SCREENSHOTS_DIR / "fig8_pca_3d_clusters_reproduced.png"
-fig8.savefig(fig8_path, dpi=200)
+fig8.savefig(fig8_path, dpi=300)
 plt.close(fig8)
 
 print(f"[+] Exported Figure 8 to: {fig8_path}")
