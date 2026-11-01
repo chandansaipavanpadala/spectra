@@ -14,10 +14,10 @@
       "sea_verified": true,
       "sea_golden_energy": 210677382745.79675,
       "sea_trojan_energy": 234144709851.84497,
-      "pca_variance_explained_pct": 99.99993859395303,
+      "pca_variance_explained_pct": 99.999938593953,
       "fusion_weights": {
-        "a1_ed": 0.8112250659114308,
-        "a2_md": 0.18877493408856913
+        "a1_ed": 0.8112250659114266,
+        "a2_md": 0.18877493408857343
       },
       "confusion_matrix": {
         "TP": 12,
@@ -30,19 +30,19 @@
       "recall_pct": 100.0,
       "false_positive_rate_pct": 0.0,
       "false_negative_rate_pct": 0.0,
-      "mean_rfd_golden": 0.029182227184950362,
-      "mean_rfd_trojan": 29.906877366785654,
-      "dynamic_separation_margin": 1024.8319011505803
+      "mean_rfd_golden": 0.02918222718495039,
+      "mean_rfd_trojan": 29.906877366794486,
+      "dynamic_separation_margin": 1024.8319011508818
     },
     "aes_t400": {
       "benchmark_type": "aes_t400",
       "sea_verified": true,
       "sea_golden_energy": 210768828509.40414,
       "sea_trojan_energy": 237016722465.8168,
-      "pca_variance_explained_pct": 99.99996244604232,
+      "pca_variance_explained_pct": 99.99996244604228,
       "fusion_weights": {
-        "a1_ed": 0.8115641859694291,
-        "a2_md": 0.1884358140305708
+        "a1_ed": 0.8115641859694296,
+        "a2_md": 0.18843581403057036
       },
       "confusion_matrix": {
         "TP": 12,
@@ -55,19 +55,19 @@
       "recall_pct": 100.0,
       "false_positive_rate_pct": 0.0,
       "false_negative_rate_pct": 0.0,
-      "mean_rfd_golden": 0.024548678650666803,
-      "mean_rfd_trojan": 52.35366949251654,
-      "dynamic_separation_margin": 2132.6471471392956
+      "mean_rfd_golden": 0.024548678650667555,
+      "mean_rfd_trojan": 52.35366949252537,
+      "dynamic_separation_margin": 2132.6471471395903
     },
     "aes_t800": {
       "benchmark_type": "aes_t800",
       "sea_verified": true,
-      "sea_golden_energy": 210657071637.28052,
-      "sea_trojan_energy": 225272001157.69095,
+      "sea_golden_energy": 210657071637.28055,
+      "sea_trojan_energy": 225272001157.69098,
       "pca_variance_explained_pct": 99.99991889320891,
       "fusion_weights": {
-        "a1_ed": 0.8111562812901677,
-        "a2_md": 0.1888437187098322
+        "a1_ed": 0.8111562812901766,
+        "a2_md": 0.18884371870982344
       },
       "confusion_matrix": {
         "TP": 12,
@@ -80,9 +80,9 @@
       "recall_pct": 100.0,
       "false_positive_rate_pct": 0.0,
       "false_negative_rate_pct": 0.0,
-      "mean_rfd_golden": 0.030769413562728647,
-      "mean_rfd_trojan": 22.954224607298396,
-      "dynamic_separation_margin": 746.0078678378554
+      "mean_rfd_golden": 0.030769413562728987,
+      "mean_rfd_trojan": 22.954224607296837,
+      "dynamic_separation_margin": 746.0078678377965
     }
   }
 }

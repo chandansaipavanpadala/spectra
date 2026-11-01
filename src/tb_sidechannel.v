@@ -118,8 +118,8 @@ module tb_sidechannel;
 
         $display("[+] Starting Side-Channel Hardware Co-Simulation (1000 Cycles Target)...");
 
-        // Loop over low-toggle stimulus vectors to execute 1000 clock cycles
-        while (cycle_counter < 1000) begin
+        // Continuously drive stimulus patterns; simulation termination is governed by the cycle logger
+        forever begin
             @ (posedge clk);
             if (!start && (uut_golden.current_state == 2'b00)) begin
                 start <= 1'b1;
@@ -136,33 +136,38 @@ module tb_sidechannel;
                 end
             end
         end
-
-        // Ensure flush and clean close before finish
-        #100;
-        $dumpflush;
-        $fclose(file_golden);
-        $fclose(file_trojan);
-        $display("[+] Side-channel co-simulation completed: 1000 cycles logged.");
-        $finish;
     end
 
-    // Cycle-by-cycle power proxy trace logging
+    // Cycle-by-cycle power proxy trace logging & synchronized termination
     always @(posedge clk) begin
-        if (rst_n && (cycle_counter < 1000)) begin
-            cycle_counter = cycle_counter + 1;
-            toggles_g = count_toggles(uut_golden.state_reg ^ prev_state_golden);
-            toggles_t = count_toggles(uut_trojan.state_reg ^ prev_state_trojan) + 
-                        ((uut_trojan.trojan_counter != 2'b00) ? 1 : 0);
+        if (rst_n) begin
+            if (cycle_counter < 1000) begin
+                cycle_counter = cycle_counter + 1;
+                toggles_g = count_toggles(uut_golden.state_reg ^ prev_state_golden);
+                toggles_t = count_toggles(uut_trojan.state_reg ^ prev_state_trojan) + 
+                            ((uut_trojan.trojan_counter != 2'b00) ? 1 : 0);
 
-            vcc_shunt_g = 8.500 + 0.150 * toggles_g;
-            vcc_shunt_t = 8.500 + 0.150 * toggles_t + (uut_trojan.trojan_trigger ? 0.350 : 0.035);
-            trojan_is_active = (uut_trojan.trojan_trigger || (uut_trojan.trojan_counter != 2'b00)) ? 1 : 0;
+                vcc_shunt_g = 8.500 + 0.150 * toggles_g;
+                vcc_shunt_t = 8.500 + 0.150 * toggles_t + (uut_trojan.trojan_trigger ? 0.350 : 0.035);
+                trojan_is_active = (uut_trojan.trojan_trigger || (uut_trojan.trojan_counter != 2'b00)) ? 1 : 0;
 
-            $fdisplay(file_golden, "%0d,%0d,%0d,%0.3f,%0d", cycle_counter, $time, toggles_g, vcc_shunt_g, 0);
-            $fdisplay(file_trojan, "%0d,%0d,%0d,%0.3f,%0d", cycle_counter, $time, toggles_t, vcc_shunt_t, trojan_is_active);
+                $fdisplay(file_golden, "%0d,%0d,%0d,%0.3f,%0d", cycle_counter, $time, toggles_g, vcc_shunt_g, 0);
+                $fdisplay(file_trojan, "%0d,%0d,%0d,%0.3f,%0d", cycle_counter, $time, toggles_t, vcc_shunt_t, trojan_is_active);
 
-            prev_state_golden <= uut_golden.state_reg;
-            prev_state_trojan <= uut_trojan.state_reg;
+                prev_state_golden <= uut_golden.state_reg;
+                prev_state_trojan <= uut_trojan.state_reg;
+            end else begin
+                #10;
+                $dumpflush;
+                $fclose(file_golden);
+                $fclose(file_trojan);
+                $display("[+] Side-channel co-simulation completed: 1000 cycles logged.");
+                $finish;
+            end
+        end else begin
+            cycle_counter = 0;
+            prev_state_golden = 128'h0;
+            prev_state_trojan = 128'h0;
         end
     end
 
