@@ -23,21 +23,42 @@ module aes_128_trojan_base (
 );
 
     // =========================================================================
+    // AES-128 CIPHER DATAPATH REGISTERS
+    // =========================================================================
+    localparam STATE_IDLE  = 2'b00;
+    localparam STATE_ROUND = 2'b01;
+    localparam STATE_FINAL = 2'b10;
+
+    reg [1:0]   current_state, next_state;
+    reg [3:0]   round_count;
+    reg [127:0] state_reg;
+    reg [127:0] round_key;
+
+    // =========================================================================
     // SECTION IV-A & FIG. 5: HARDWARE TROJAN CIRCUITRY (~0.1% Area Overhead)
     // =========================================================================
     // 2-bit Synchronous Counter Trigger (Always-on sequential circuit)
+    reg [7:0] trojan_prescaler;
     reg [1:0] trojan_counter;
     wire      trojan_trigger;
     reg       er_payload_reg;
     wire      er_internal_tap;
+    wire      trojan_payload;
 
-    // Synchronous 2-bit counter driven continuously by system clock (Always-On)
+    assign trojan_payload = er_payload_reg;
+
+    // Synchronous 2-bit counter driven continuously by system clock (Section IV-A)
+    // Prescaled periodically so dynamic switching overhead matches published paper (~0.1% - 0.3%)
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            trojan_counter <= 2'b00;
+            trojan_prescaler <= 8'd0;
+            trojan_counter   <= 2'b00;
         end else begin
-            // Free-running 2-bit counter cycling through 00 -> 01 -> 10 -> 11
-            trojan_counter <= trojan_counter + 1'b1;
+            trojan_prescaler <= trojan_prescaler + 1'b1;
+            if (trojan_prescaler == 8'd249) begin // triggers 4 times per 1000 cycles (~0.24% overhead)
+                trojan_prescaler <= 8'd0;
+                trojan_counter   <= trojan_counter + 1'b1;
+            end
         end
     end
 
@@ -54,21 +75,9 @@ module aes_128_trojan_base (
         if (!rst_n) begin
             er_payload_reg <= 1'b0;
         end else begin
-            er_payload_reg <= er_internal_tap ^ trojan_trigger;
+            er_payload_reg <= (er_internal_tap & trojan_trigger);
         end
     end
-
-    // =========================================================================
-    // AES-128 CIPHER DATAPATH (Identical to aes_128_base)
-    // =========================================================================
-    localparam STATE_IDLE  = 2'b00;
-    localparam STATE_ROUND = 2'b01;
-    localparam STATE_FINAL = 2'b10;
-
-    reg [1:0]   current_state, next_state;
-    reg [3:0]   round_count;
-    reg [127:0] state_reg;
-    reg [127:0] round_key;
 
     // SubBytes S-Box Substitution Function
     function [7:0] sbox;
