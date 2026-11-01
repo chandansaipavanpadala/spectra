@@ -4,3 +4,4 @@
 # ==============================================================================
 set SCRIPT_DIR [file normalize [file dirname [info script]]]
 source [file join $SCRIPT_DIR "scripts" "run_vivado_full_flow.tcl"]
+

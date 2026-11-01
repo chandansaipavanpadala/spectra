@@ -443,11 +443,9 @@ plt.tight_layout()
 fig6.subplots_adjust(bottom=0.14)
 
 fig6_png = SCREENSHOTS_DIR / "fig6_time_domain_power_reproduced.png"
-fig6_jpg = SCREENSHOTS_DIR / "fig6_time_domain_power_reproduced.jpg"
 fig6.savefig(fig6_png, dpi=300)
-fig6.savefig(fig6_jpg, dpi=300)
 plt.close(fig6)
-print(f"[+] Exported Figure 6 to: {fig6_png} and {fig6_jpg}")
+print(f"[+] Exported Figure 6 to: {fig6_png}")
 
 # ==============================================================================
 # Plot 2: Figure 7 Replication (Spectral Eigenvectors Reproduction)
@@ -498,9 +496,7 @@ for text in leg7.get_texts():
 plt.tight_layout()
 
 fig7_png = SCREENSHOTS_DIR / "fig7_spectral_eigenvector_reproduced.png"
-fig7_jpg = SCREENSHOTS_DIR / "fig7_spectral_eigenvector_reproduced.jpg"
 fig7.savefig(fig7_png, dpi=300)
-fig7.savefig(fig7_jpg, dpi=300)
 plt.close(fig7)
-print(f"[+] Exported Figure 7 to: {fig7_png} and {fig7_jpg}")
+print(f"[+] Exported Figure 7 to: {fig7_png}")
 print("[+] Script 01 completed successfully.")

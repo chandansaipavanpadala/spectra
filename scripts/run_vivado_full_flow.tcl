@@ -133,3 +133,4 @@ puts "[+] Trojan core synthesis reports saved to reports/."
 puts "\n======================================================================"
 puts "[+] VIVADO FULL FLOW EXECUTION FINISHED SUCCESSFULLY!"
 puts "======================================================================"
+

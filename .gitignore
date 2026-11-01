@@ -67,6 +67,12 @@ venv/
 Thumbs.db
 
 # ==========================================
+# Disallow duplicate JPG screenshot renders
+# ==========================================
+references/implementation/screenshots/*.jpg
+screenshots/*.jpg
+
+# ==========================================
 # LaTeX Intermediate Build Artifacts (Documentation)
 # ==========================================
 documentation/*.aux

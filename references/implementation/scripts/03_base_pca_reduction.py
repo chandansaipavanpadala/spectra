@@ -285,10 +285,8 @@ for text in leg8.get_texts():
 plt.tight_layout()
 
 fig8_png = SCREENSHOTS_DIR / "fig8_pca_3d_clusters_reproduced.png"
-fig8_jpg = SCREENSHOTS_DIR / "fig8_pca_3d_clusters_reproduced.jpg"
 fig8.savefig(fig8_png, dpi=300)
-fig8.savefig(fig8_jpg, dpi=300)
 plt.close(fig8)
 
-print(f"[+] Exported Figure 8 to: {fig8_png} and {fig8_jpg}")
+print(f"[+] Exported Figure 8 to: {fig8_png}")
 print("[+] Script 03 completed successfully.")

@@ -28,10 +28,10 @@ spectra/references/implementation/
 │   ├── base_pca_results.json             # PCA coeff (129x10), scg (24x10), sct (24x10)
 │   └── base_fusion_metrics.json          # Validation metrics (100% Acc, 0% FPR, ED/MD/FD)
 ├── screenshots/                          # High-Resolution (300 DPI) Reproductions
-│   ├── fig6_time_domain_power_reproduced.png / .jpg   # Time-domain power traces (Paper Fig. 6)
-│   ├── fig7_spectral_eigenvector_reproduced.png / .jpg # 129-D spectral eigenvectors (Paper Fig. 7)
-│   ├── fig8_pca_3d_clusters_reproduced.png / .jpg      # 3D PCA cluster projection (Paper Fig. 8)
-│   └── fig9_fusion_distance_boundary_reproduced.png / .jpg # Decision boundary y=x (Paper Fig. 9)
+│   ├── fig6_time_domain_power_reproduced.png   # Time-domain power traces (Paper Fig. 6)
+│   ├── fig7_spectral_eigenvector_reproduced.png # 129-D spectral eigenvectors (Paper Fig. 7)
+│   ├── fig8_pca_3d_clusters_reproduced.png      # 3D PCA cluster projection (Paper Fig. 8)
+│   └── fig9_fusion_distance_boundary_reproduced.png # Decision boundary y=x (Paper Fig. 9)
 └── proof/                                # Documentation, Cross-References & Paper Pages
     ├── PAPER_PROOF_CROSS_REFERENCE.md    # Comprehensive equation-by-equation proof guide
     ├── paper direct/                     # Direct screenshots from the published IEEE paper

@@ -32,3 +32,4 @@ Timing Summary Report
 |   Worst Pulse Width    (WPWS):   49.500 ns
 |   All user specified timing constraints are met.
 ------------------------------------------------------------------------------------------------
+

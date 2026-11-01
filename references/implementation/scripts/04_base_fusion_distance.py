@@ -256,10 +256,8 @@ for text in leg9.get_texts():
 plt.tight_layout()
 
 fig9_png = SCREENSHOTS_DIR / "fig9_fusion_distance_boundary_reproduced.png"
-fig9_jpg = SCREENSHOTS_DIR / "fig9_fusion_distance_boundary_reproduced.jpg"
 fig9.savefig(fig9_png, dpi=300)
-fig9.savefig(fig9_jpg, dpi=300)
 plt.close(fig9)
 
-print(f"[+] Exported Figure 9 to: {fig9_png} and {fig9_jpg}")
+print(f"[+] Exported Figure 9 to: {fig9_png}")
 print("[+] Script 04 completed successfully.")
