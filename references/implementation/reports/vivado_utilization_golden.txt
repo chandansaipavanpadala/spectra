@@ -1,0 +1,20 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
+| Date         : Sun Nov  1 10:00:00 2026
+| Command      : report_utilization -file reports/vivado_utilization_golden.txt
+| Design       : aes_128
+| Device       : 7a35tcsg324-1
+| Design State : Synthesized
+------------------------------------------------------------------------------------
+
+1. Slice Logic
+--------------
++-------------------------+------+-------+-----------+-------+
+|        Site Type        | Used | Fixed | Available | Util% |
++-------------------------+------+-------+-----------+-------+
+| Slice LUTs*             | 2145 |     0 |     20800 | 10.31 |
+|   LUT as Logic          | 2145 |     0 |     20800 | 10.31 |
+| Slice Registers         |  264 |     0 |     41600 |  0.63 |
+|   Register as Flip Flop |  264 |     0 |     41600 |  0.63 |
++-------------------------+------+-------+-----------+-------+

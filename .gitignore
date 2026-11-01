@@ -17,6 +17,14 @@ spectra.sim/
 spectra.cache/
 spectra.hw/
 spectra_prj/
+vivado_project/
+vivado_project_base/
+
+# Allow tracking of hardware co-simulation CSV traces and Vivado reports
+!reports/*.csv
+!reports/vivado_*.txt
+!references/implementation/reports/*.csv
+!references/implementation/reports/vivado_*.txt
 
 # Output bitstreams and binary reports
 *.bit

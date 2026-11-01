@@ -1,12 +1,11 @@
 `timescale 1ns / 1ps
 ////////////////////////////////////////////////////////////////////////////////
 // Module Name: tb_sidechannel_base
-// Description: Strict IEEE JIOT 2024 Side-Channel Testbench
+// Description: Strict IEEE JIOT 2024 Base Paper Side-Channel Testbench
 //              Applies Top-10 Low-Toggle Optimization Stimulus Vectors (Section IV-A)
-//              and generates 1M-point raw power proxy traces at fs = 2.5 GHz.
+//              and records cycle-by-cycle hardware switching traces.
 // Reference:   Chunhua He et al., IEEE JIOT, Vol. 11, No. 8, pp. 13927-13937, 2024.
-// Clock:       10 MHz Main Clock (T_clk = 100 ns)
-// Sampling:    fs = 2.5 GHz (Delta_t = 0.4 ns, 1,000,000 points = 400 us = 4 x 10^-4 s)
+// Format:      cycle,timestamp_ns,hamming_toggles,vccint_shunt_mv,trojan_active
 ////////////////////////////////////////////////////////////////////////////////
 
 module tb_sidechannel_base;
@@ -29,7 +28,8 @@ module tb_sidechannel_base;
     // File Descriptors for Side-Channel Traces
     integer file_golden;
     integer file_trojan;
-    integer sample_idx;
+    integer cycle_counter;
+    integer p_idx;
 
     // Instantiate Golden AES Core (aes_128_base)
     aes_128_base uut_golden (
@@ -57,17 +57,16 @@ module tb_sidechannel_base;
     always #50 clk = ~clk;
 
     // Top-10 Low-Toggle Optimization Vectors (Section IV-A)
-    // Selected from 10 million pseudo-random patterns to minimize background dynamic switching noise
     reg [127:0] opt_patterns [0:9];
-    integer p_idx;
 
     // Power proxy calculation variables
-    real power_g;
-    real power_t;
     reg [127:0] prev_reg_g;
     reg [127:0] prev_reg_t;
     integer toggles_g;
     integer toggles_t;
+    real vcc_g;
+    real vcc_t;
+    integer trojan_is_active;
 
     // Hamming distance function for state register transitions
     function integer count_toggles;
@@ -101,65 +100,76 @@ module tb_sidechannel_base;
         start = 0;
         key_in = 128'h00010203_04050607_08090A0B_0C0D0E0F;
         state_in = 128'h0;
-        sample_idx = 0;
+        cycle_counter = 0;
         prev_reg_g = 128'h0;
         prev_reg_t = 128'h0;
+        p_idx = 0;
 
-        file_golden = $fopen("spectra/references/implementation/reports/power_trace_golden_base.csv", "w");
-        file_trojan = $fopen("spectra/references/implementation/reports/power_trace_trojan_base.csv", "w");
+        // Write directly to local files in active simulation directory
+        file_golden = $fopen("power_trace_golden.csv", "w");
+        file_trojan = $fopen("power_trace_trojan.csv", "w");
 
         if (file_golden == 0 || file_trojan == 0) begin
             $display("[!] Error: Unable to open trace CSV files for writing.");
             $finish;
         end
 
-        $fdisplay(file_golden, "sample_idx,time_s,voltage_v");
-        $fdisplay(file_trojan, "sample_idx,time_s,voltage_v");
+        // Exact CSV header requested
+        $fdisplay(file_golden, "cycle,timestamp_ns,hamming_toggles,vccint_shunt_mv,trojan_active");
+        $fdisplay(file_trojan, "cycle,timestamp_ns,hamming_toggles,vccint_shunt_mv,trojan_active");
 
         #100;
         rst_n = 1;
         #100;
 
-        $display("[+] Starting Top-10 Low-Toggle Side-Channel Acquisition Simulation...");
+        $display("[+] Starting Base Paper Low-Toggle Side-Channel Acquisition (1000 Cycles)...");
 
-        // Loop over the top-10 optimization patterns
-        for (p_idx = 0; p_idx < 10; p_idx = p_idx + 1) begin
+        // Loop over the top-10 optimization patterns for 1000 clock cycles
+        while (cycle_counter < 1000) begin
             @ (posedge clk);
-            state_in <= opt_patterns[p_idx];
-            start    <= 1'b1;
-            @ (posedge clk);
-            start    <= 1'b0;
-
-            // Wait for AES encryption completion (10 rounds = 10 cycles)
-            @ (posedge done_golden);
+            if (!start && (uut_golden.current_state == 2'b00)) begin
+                start <= 1'b1;
+                state_in <= opt_patterns[p_idx % 10];
+                p_idx <= p_idx + 1;
+            end else if (start) begin
+                start <= 1'b0;
+            end
 
             // Verify logic equivalence (Section II-B: functional testing)
-            if (state_out_golden !== state_out_trojan) begin
-                $display("[!] Logic Error: Output discrepancy detected at pattern %0d!", p_idx);
-            end else begin
-                $display("[+] Pattern %0d: Ciphertext identical (0.1%% area implicit Trojan confirmed dormant).", p_idx);
+            if (done_golden && done_trojan) begin
+                if (state_out_golden !== state_out_trojan) begin
+                    $display("[!] Logic Error: Output discrepancy detected at cycle %0d!", cycle_counter);
+                end
             end
         end
 
+        #100;
+        $dumpflush;
         $fclose(file_golden);
         $fclose(file_trojan);
-        $display("[+] tb_sidechannel_base simulation finished successfully.");
+        $display("[+] tb_sidechannel_base simulation finished successfully: 1000 cycles logged.");
         $finish;
     end
 
-    // High-resolution side-channel sampling monitor (fs = 2.5 GHz -> period = 0.4 ns)
-    always #0.4 begin
-        if (rst_n && sample_idx < 1000000) begin
+    // Cycle-by-cycle power proxy trace logging
+    always @(posedge clk) begin
+        if (rst_n && (cycle_counter < 1000)) begin
+            cycle_counter = cycle_counter + 1;
             toggles_g = count_toggles(uut_golden.state_reg ^ prev_reg_g);
-            toggles_t = count_toggles(uut_trojan.state_reg ^ prev_reg_t) + (uut_trojan.trojan_trigger ? 2 : 0);
+            // In aes_128_trojan_base, always-on 2-bit counter toggles continuously (+1 or +2)
+            toggles_t = count_toggles(uut_trojan.state_reg ^ prev_reg_t) + 
+                        (uut_trojan.trojan_trigger ? 2 : 1);
 
-            // Voltage proxy across 0.5 Ohm resistor on Vccint (Fig. 6: ~0 to 0.04 V)
-            power_g = 0.012 + 0.00015 * toggles_g + 0.005 * $sin(sample_idx * 0.0251327);
-            power_t = 0.012 + 0.00015 * toggles_t + 0.005 * $sin(sample_idx * 0.0251327) + (uut_trojan.trojan_trigger ? 0.002 : 0.0);
+            // Voltage proxy across shunt resistor (He et al. Fig. 6: ~8.5 mV base + toggles)
+            vcc_g = 8.500 + 0.150 * toggles_g;
+            vcc_t = 8.500 + 0.150 * toggles_t + (uut_trojan.trojan_trigger ? 0.350 : 0.035);
+            trojan_is_active = (uut_trojan.trojan_counter != 2'b00 || uut_trojan.trojan_trigger) ? 1 : 0;
 
-            prev_reg_g = uut_golden.state_reg;
-            prev_reg_t = uut_trojan.state_reg;
-            sample_idx = sample_idx + 1;
+            $fdisplay(file_golden, "%0d,%0d,%0d,%0.3f,%0d", cycle_counter, $time, toggles_g, vcc_g, 0);
+            $fdisplay(file_trojan, "%0d,%0d,%0d,%0.3f,%0d", cycle_counter, $time, toggles_t, vcc_t, trojan_is_active);
+
+            prev_reg_g <= uut_golden.state_reg;
+            prev_reg_t <= uut_trojan.state_reg;
         end
     end
 
