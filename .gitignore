@@ -73,6 +73,11 @@ references/implementation/screenshots/*.jpg
 screenshots/*.jpg
 
 # ==========================================
+# Presentations Directory (Kept only in outer Project/Presentations)
+# ==========================================
+Presentations/
+
+# ==========================================
 # LaTeX Intermediate Build Artifacts
 # ==========================================
 *.aux
