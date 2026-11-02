@@ -70,15 +70,15 @@
     94.0141076731093,
     93.38662043507692,
     92.1529458965301,
-    90.94233819071762,
+    90.94233819071763,
     90.35793491243098,
-    89.17891670095995,
+    89.17891670095993,
     88.30978854047714,
     86.94173122364208,
     85.05962206115288,
     83.5598781041405,
-    82.64012184357246,
-    80.04159005121096,
+    82.64012184357247,
+    80.04159005121097,
     79.00789644113395,
     76.50218599465795,
     75.09983882300232,
@@ -90,7 +90,7 @@
     62.4212513596986,
     59.65760277029764,
     57.76276269380991,
-    55.98598008268206,
+    55.98598008268207,
     53.44912631130753,
     44.14857523262246,
     41.35741680576849,
@@ -123,11 +123,11 @@
     8.564151274792284,
     7.8196275155108985,
     6.9295257461502455,
-    6.582272748755926,
+    6.582272748755927,
     17.472174293825056,
     9814.238754084221,
     98.68081376585292,
-    4144.108220415178,
+    4144.108220415177,
     131.6007350906013,
     2157.244310482849,
     100.73132662759238,
@@ -174,14 +174,14 @@
     1.1225262692840077,
     1.436167474658854,
     1.581370115767742,
-    2.326732060665504,
+    2.3267320606655035,
     2.4559874288149226,
     1.824599153230173,
     1.292942777398039,
     0.48323858327050484,
     1.2289570356536106,
-    2.3124535572353486,
-    2.658524617791692,
+    2.312453557235348,
+    2.6585246177916915,
     2.2960482256069557,
     2.2181433276957683,
     1.953473435081656,
@@ -299,7 +299,7 @@
     7.34484790123191,
     3.809999158918119,
     2.61644161127539,
-    2.6401366772221166,
+    2.640136677222116,
     3.3819797203713384,
     1.5655579041379748,
     1.2759400369480387,
@@ -312,7 +312,7 @@
     1.1908155349610392,
     1.6588010019708885,
     1.7103980356605901,
-    2.5704118765978667,
+    2.570411876597867,
     2.6377621541593075,
     2.5998237639976263,
     3.3811515595049033,
@@ -357,7 +357,7 @@
       "assigned_cluster": "Golden",
       "ground_truth": "Golden",
       "membership_golden": 0.9868811785623867,
-      "membership_trojan": 0.01311882143761341
+      "membership_trojan": 0.013118821437613405
     },
     "G_train_7": {
       "assigned_cluster": "Golden",
@@ -381,7 +381,7 @@
       "assigned_cluster": "Golden",
       "ground_truth": "Golden",
       "membership_golden": 0.970447739868507,
-      "membership_trojan": 0.02955226013149307
+      "membership_trojan": 0.029552260131493063
     },
     "G_train_11": {
       "assigned_cluster": "Golden",
@@ -435,7 +435,7 @@
       "assigned_cluster": "Golden",
       "ground_truth": "Golden",
       "membership_golden": 0.9934547143977711,
-      "membership_trojan": 0.006545285602229033
+      "membership_trojan": 0.006545285602229035
     },
     "G_train_20": {
       "assigned_cluster": "Golden",
@@ -447,7 +447,7 @@
       "assigned_cluster": "Golden",
       "ground_truth": "Golden",
       "membership_golden": 0.9705777337538535,
-      "membership_trojan": 0.029422266246146443
+      "membership_trojan": 0.029422266246146425
     },
     "G_train_22": {
       "assigned_cluster": "Golden",
@@ -476,43 +476,43 @@
     "T_train_2": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.0015406363722265254,
+      "membership_golden": 0.0015406363722265217,
       "membership_trojan": 0.9984593636277734
     },
     "T_train_3": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.018725126021607003,
+      "membership_golden": 0.018725126021607006,
       "membership_trojan": 0.981274873978393
     },
     "T_train_4": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.013086283851532132,
+      "membership_golden": 0.013086283851532128,
       "membership_trojan": 0.9869137161484679
     },
     "T_train_5": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.004879553306433181,
+      "membership_golden": 0.004879553306433183,
       "membership_trojan": 0.9951204466935668
     },
     "T_train_6": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.001970799684329652,
+      "membership_golden": 0.0019707996843296494,
       "membership_trojan": 0.9980292003156703
     },
     "T_train_7": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.04793742916949392,
+      "membership_golden": 0.047937429169493936,
       "membership_trojan": 0.9520625708305062
     },
     "T_train_8": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.025462495282449153,
+      "membership_golden": 0.025462495282449156,
       "membership_trojan": 0.9745375047175507
     },
     "T_train_9": {
@@ -524,13 +524,13 @@
     "T_train_10": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.007927003801173352,
+      "membership_golden": 0.007927003801173345,
       "membership_trojan": 0.9920729961988266
     },
     "T_train_11": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.0036869148540314735,
+      "membership_golden": 0.0036869148540314765,
       "membership_trojan": 0.9963130851459685
     },
     "T_train_12": {
@@ -542,73 +542,73 @@
     "T_train_13": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.004156612215163248,
+      "membership_golden": 0.004156612215163246,
       "membership_trojan": 0.9958433877848368
     },
     "T_train_14": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.006227786442538491,
+      "membership_golden": 0.006227786442538489,
       "membership_trojan": 0.9937722135574614
     },
     "T_train_15": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.0034765335537058025,
+      "membership_golden": 0.0034765335537058073,
       "membership_trojan": 0.9965234664462943
     },
     "T_train_16": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.010477628652591163,
+      "membership_golden": 0.010477628652591168,
       "membership_trojan": 0.9895223713474088
     },
     "T_train_17": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.01747975555305163,
+      "membership_golden": 0.01747975555305157,
       "membership_trojan": 0.9825202444469484
     },
     "T_train_18": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.0028869551023490963,
+      "membership_golden": 0.0028869551023490985,
       "membership_trojan": 0.997113044897651
     },
     "T_train_19": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.0014004643022795186,
+      "membership_golden": 0.0014004643022795162,
       "membership_trojan": 0.9985995356977204
     },
     "T_train_20": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.008514326741831996,
+      "membership_golden": 0.008514326741831987,
       "membership_trojan": 0.9914856732581679
     },
     "T_train_21": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.015124795073370821,
+      "membership_golden": 0.015124795073370834,
       "membership_trojan": 0.9848752049266292
     },
     "T_train_22": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.0009736981892281802,
+      "membership_golden": 0.0009736981892281784,
       "membership_trojan": 0.9990263018107718
     },
     "T_train_23": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.0018702609983912983,
+      "membership_golden": 0.0018702609983912964,
       "membership_trojan": 0.9981297390016088
     },
     "T_train_24": {
       "assigned_cluster": "Trojan",
       "ground_truth": "Trojan",
-      "membership_golden": 0.002097899323839033,
+      "membership_golden": 0.0020978993238390366,
       "membership_trojan": 0.9979021006761609
     }
   }

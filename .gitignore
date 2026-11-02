@@ -73,14 +73,16 @@ references/implementation/screenshots/*.jpg
 screenshots/*.jpg
 
 # ==========================================
-# LaTeX Intermediate Build Artifacts (Documentation)
+# LaTeX Intermediate Build Artifacts
 # ==========================================
-documentation/*.aux
-documentation/*.log
-documentation/*.toc
-documentation/*.lof
-documentation/*.lot
-documentation/*.out
-documentation/*.fls
-documentation/*.fdb_latexmk
-documentation/*.synctex.gz
+*.aux
+*.nav
+*.snm
+*.toc
+*.lof
+*.lot
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.vrb

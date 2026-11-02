@@ -1,0 +1,219 @@
+% =============================================================================
+% beamer_amrita_theme.sty
+% -----------------------------------------------------------------------------
+% Modular Style Package for Amrita Vishwa Vidyapeetham Beamer Presentations
+% Compatible with aspectratio=169, pdflatex, and MiKTeX/TeXLive distributions.
+% =============================================================================
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{beamer_amrita_theme}[2026/09/20 v1.0 Amrita Beamer Theme]
+
+% -----------------------------------------------------------------------------
+% Required Packages
+% -----------------------------------------------------------------------------
+\RequirePackage[T1]{fontenc}
+\RequirePackage{mathptmx}           % Times New Roman serif across text and math
+\RequirePackage{microtype}
+\RequirePackage{calc}
+\RequirePackage{graphicx}
+\RequirePackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,calc,fit,backgrounds,shadows.blur,shapes.geometric}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{array}
+\RequirePackage{colortbl}
+\RequirePackage[none]{hyphenat}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\binoppenalty=10000
+\relpenalty=10000
+\tolerance=10000
+\emergencystretch=3em
+\righthyphenmin=62
+\lefthyphenmin=62
+
+% -----------------------------------------------------------------------------
+% Serif Typography Enforcements
+% -----------------------------------------------------------------------------
+\usefonttheme{serif}
+\setbeamerfont{title}{family=\rmfamily,series=\bfseries}
+\setbeamerfont{frametitle}{family=\rmfamily,series=\bfseries}
+\setbeamerfont{normal text}{family=\rmfamily}
+\setbeamerfont{itemize/enumerate body}{family=\rmfamily}
+\setbeamerfont{itemize/enumerate subbody}{family=\rmfamily}
+\setbeamerfont{itemize/enumerate subsubbody}{family=\rmfamily}
+
+% Remove default navigation symbols
+\setbeamertemplate{navigation symbols}{}
+
+% Standard Margins
+\setbeamersize{text margin left=0.85cm, text margin right=0.85cm}
+
+% -----------------------------------------------------------------------------
+% Color Palette & Tokens
+% -----------------------------------------------------------------------------
+\definecolor{canvasBg}{HTML}{FFF7ED}         % Peach gradient fallback background
+\definecolor{accentDark}{HTML}{000000}       % Pure Black accent rules, bullets & borders
+\definecolor{accentLightBlue}{HTML}{000000}  % High-contrast primary accent
+\definecolor{accentIce}{HTML}{FFFFFF}        % Pure White translucent badge fill
+\definecolor{textPrimary}{HTML}{000000}      % Strict pure crisp black font
+\definecolor{textMuted}{HTML}{333333}        % Muted body text
+\definecolor{glassFill}{HTML}{FFFFFF}        % Translucent white glass fill
+\definecolor{glassBorder}{HTML}{FFFFFF}      % Crisp luminous white glazed rim
+
+\setbeamercolor{background canvas}{bg=canvasBg}
+\setbeamercolor{normal text}{fg=textPrimary}
+\setbeamercolor{structure}{fg=accentDark}
+\setbeamercolor{itemize item}{fg=accentDark}
+\setbeamercolor{itemize subitem}{fg=accentDark}
+\setbeamercolor{itemize subsubitem}{fg=accentDark}
+
+% Itemize Bullet Symbols (Solid clean circles)
+\setbeamertemplate{itemize item}{\raisebox{0.15ex}{\tiny$\bullet$}}
+\setbeamertemplate{itemize subitem}{\raisebox{0.15ex}{\tiny$\circ$}}
+\setbeamertemplate{itemize subsubitem}{\raisebox{0.15ex}{\tiny--}}
+
+% -----------------------------------------------------------------------------
+% Glassmorphic Card Containers (tcolorbox)
+% -----------------------------------------------------------------------------
+% Primary Translucent Frosted Glass Container with Header
+\newtcolorbox{glassbox}[2][]{%
+  enhanced,
+  colback=white,
+  opacityback=0.18,             % True frosted glass transparency
+  colframe=white,
+  opacityframe=0.65,            % Crisp luminous glazed rim
+  boxrule=0.7pt,
+  arc=2.5mm,
+  coltext=textPrimary,
+  fuzzy shadow={0mm}{-1mm}{0mm}{0.25mm}{black!22},
+  fonttitle=\bfseries\fontsize{9.5pt}{11.5pt}\selectfont\color{textPrimary},
+  fontupper=\fontsize{8.5pt}{11.0pt}\selectfont,
+  colbacktitle=white,
+  opacitybacktitle=0.28,
+  title={#2},
+  top=4pt, bottom=4pt, left=6pt, right=6pt,
+  #1
+}
+
+% Secondary Subtle Glass Card (Highly Translucent Glassmorphism)
+\newtcolorbox{glasscard}[1][]{%
+  enhanced,
+  colback=white,
+  opacityback=0.12,             % Highly translucent glass (lets gradient show through)
+  colframe=white,
+  opacityframe=0.55,            % Crisp luminous glazed rim
+  boxrule=0.6pt,
+  arc=2mm,
+  coltext=textPrimary,
+  fuzzy shadow={0mm}{-0.8mm}{0mm}{0.15mm}{black!18},
+  fontupper=\fontsize{8.5pt}{11.0pt}\selectfont,
+  top=3pt, bottom=3pt, left=5pt, right=5pt,
+  #1
+}
+
+% Cardbox alias to glassbox
+\let\cardbox\glassbox
+\let\endcardbox\endglassbox
+
+% Progress Indicator Dots
+\newcommand{\decorativedots}{{\fontsize{11pt}{11pt}\selectfont\color{accentDark} \textbullet\hspace{0.35em}\textbullet\hspace{0.35em}\textbullet\hspace{0.35em}\textbullet}}
+
+% Visual / Image Placeholder Container
+\newtcolorbox{imagebox}[2][]{%
+  enhanced,
+  colback=white,
+  opacityback=0.98,
+  colframe=black!15,
+  boxrule=0.6pt,
+  arc=2.5mm,
+  width=\linewidth,
+  height=#2,
+  valign=center,
+  halign=center,
+  top=2pt, bottom=2pt, left=2pt, right=2pt,
+  #1
+}
+
+% -----------------------------------------------------------------------------
+% Numeric Badges & Process Cards
+% -----------------------------------------------------------------------------
+\newcommand{\badge}[1]{%
+  \begin{tikzpicture}
+    \node[circle, draw=black!75, line width=0.8pt, fill=white, fill opacity=0.85, text opacity=1, text=black, font=\bfseries\scriptsize, inner sep=2pt, minimum size=14pt] {#1};
+  \end{tikzpicture}%
+}
+
+% Macro version of processcard: \processcard{Number}{Title}{Content}
+\newcommand{\processcard}[3]{%
+  \begin{glasscard}[boxsep=1.5pt, top=2.5pt, bottom=2.5pt, left=6pt, right=6pt]
+    \noindent
+    \begin{minipage}[c]{0.08\textwidth}
+      \centering\badge{#1}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[c]{0.90\textwidth}
+      {\fontsize{9.5pt}{11.5pt}\selectfont \textbf{\color{textPrimary}#2:}\par\vspace{1pt}}%
+      {\fontsize{8.5pt}{11.0pt}\selectfont#3}
+    \end{minipage}
+  \end{glasscard}
+}
+
+% Environment version of processcard: \begin{processcardenv}[tcb options]{Number}{Title} ... \end{processcardenv}
+\newenvironment{processcardenv}[3][top=2pt, bottom=2pt, left=5pt, right=5pt]{%
+  \begin{glasscard}[boxsep=1.2pt, #1]
+    \noindent
+    \begin{minipage}[c]{0.07\textwidth}
+      \centering\badge{#2}
+    \end{minipage}%
+    \hfill%
+    \begin{minipage}[c]{0.91\textwidth}
+      {\fontsize{9.5pt}{11.5pt}\selectfont \textbf{\color{textPrimary}#3:}\par\vspace{1pt}}%
+      \fontsize{8.5pt}{11.0pt}\selectfont
+}{%
+    \end{minipage}
+  \end{glasscard}
+}
+
+% -----------------------------------------------------------------------------
+% Standard Content Header Macro
+% -----------------------------------------------------------------------------
+% Args: #1 = Slide Title
+\providecommand{\logoAsset}{Amrita-vishwa-vidyapeetham-dark-logo.png}
+
+\newcommand{\slideheader}[1]{%
+  \vspace*{-0.35cm}%
+  \noindent%
+  \hfill%
+  \begin{minipage}[c]{0.5\textwidth}%
+    \raggedleft%
+    \includegraphics[height=0.80cm, keepaspectratio]{\logoAsset}%
+    \hspace*{-0.80cm}%
+  \end{minipage}%
+  \par\vspace{0.08cm}%
+  \noindent%
+  {\fontsize{13pt}{15pt}\selectfont\bfseries\color{textPrimary} #1}\hspace{0.5em}{\color{accentDark}\leaders\vrule height 1.3pt depth -0.3pt\hfill\null}%
+  \par\vspace{0.12cm}%
+}
+
+% -----------------------------------------------------------------------------
+% Footer Definition
+% -----------------------------------------------------------------------------
+\providecommand{\footerTeamName}{Team DHV\={A}N\={I}}
+
+\setbeamertemplate{footline}{%
+  \begin{tikzpicture}[remember picture, overlay]
+    % Bottom-Left Footer: Team / Presentation Brand
+    \node[anchor=south west, inner sep=0pt] at ($(current page.south west)+(0.85cm, 0.28cm)$) {%
+      {\fontsize{6.5pt}{8pt}\selectfont\color{black!55} \footerTeamName}%
+    };
+    % Bottom-Right Footer: Dynamic Slide Number
+    \node[anchor=south east, inner sep=0pt] at ($(current page.south east)+(-0.85cm, 0.28cm)$) {%
+      {\fontsize{6.5pt}{8pt}\selectfont\color{black!55} \insertframenumber/\ifdefined\totalSlideCount\totalSlideCount\else\inserttotalframenumber\fi}%
+    };
+  \end{tikzpicture}%
+}
+
+\endinput
