@@ -1,13 +1,13 @@
 Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2020.1 (win64) Build 2902540 Wed May 27 19:54:49 MDT 2020
-| Date         : Sun Nov  1 23:47:45 2026
+| Date         : Wed Nov  4 20:58:40 2026
 | Host         : Harshas running 64-bit major release  (build 9200)
-| Command      : report_utilization -file {C:/Users/DELL/OneDrive - Amrita vishwa vidyapeetham/sem/sem-7/Hardw/project/github/spectra/reports/vivado_utilization_trojan.txt}
-| Design       : aes_128_trojan
+| Command      : report_utilization -file X:/references/implementation/reports/vivado_utilization_trojan.txt
+| Design       : aes_128_trojan_base
 | Device       : 7a35tcsg324-1
 | Design State : Synthesized
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
 
 Utilization Design Information
 
