@@ -154,24 +154,43 @@ print(f"[+] Saved detection report to {REPORTS_DIR / 'detection_report.json'}")
 fd_g_arr = np.array(fd_g_list)
 fd_t_arr = np.array(fd_t_list)
 
-plt.figure(figsize=(8, 7), dpi=300)
-plt.scatter(fd_g_arr[true_labels == 0], fd_t_arr[true_labels == 0], c='#007791', marker='o', s=80, label='Validation Golden Chips (12)', alpha=0.9)
-plt.scatter(fd_g_arr[true_labels == 1], fd_t_arr[true_labels == 1], c='#C0392B', marker='^', s=90, label='Validation Trojan Chips (12)', alpha=0.9)
+fig, ax = plt.subplots(figsize=(8.0, 5.6), dpi=300)
+
+# Golden Chips: Open blue circles
+ax.scatter(fd_g_arr[true_labels == 0], fd_t_arr[true_labels == 0],
+           facecolors='none', edgecolors='#0055D4', marker='o', s=85,
+           linewidth=2.0, label='Validation Golden Chips (12)')
+
+# Trojan Chips: Solid red triangles
+ax.scatter(fd_g_arr[true_labels == 1], fd_t_arr[true_labels == 1],
+           c='#D32F2F', marker='^', s=95,
+           linewidth=1.5, label='Validation Trojan Chips (12)')
 
 # Decision Boundary: RFD = FD_G / FD_T = 1 => FD_T = FD_G (y = x line)
 max_val = max(np.max(fd_g_arr), np.max(fd_t_arr)) * 1.15
-plt.plot([0, max_val], [0, max_val], 'k--', linewidth=1.5, label='Decision Boundary (RFD = 1.0)')
+boundary_vals = np.linspace(0, max_val, 100)
+ax.plot(boundary_vals, boundary_vals, color='#00AA00', linestyle='--', linewidth=2.0,
+        label='Decision Boundary "$y=x$" ($R_{FD} = 1.0$)')
 
-plt.title("SPECTRA: Fusion Distance Classification Boundary (RFD < 1 vs RFD >= 1)", fontsize=11, fontweight='bold', pad=12)
-plt.xlabel("Fusion Distance to Golden Center (FD_G)", fontsize=10, fontweight='bold')
-plt.ylabel("Fusion Distance to Trojan Center (FD_T)", fontsize=10, fontweight='bold')
-plt.xlim(0, max_val)
-plt.ylim(0, max_val)
-plt.grid(True, linestyle="--", alpha=0.5)
-plt.legend(loc="upper left", frameon=True)
+ax.set_title("SPECTRA: Fusion Distance Decision Boundary ($y=x$)", fontsize=12, fontweight='bold', pad=8)
+ax.set_xlabel("Distance to Golden Center ($FD_G$)", fontsize=11, fontweight='bold', fontstyle='italic', labelpad=4)
+ax.set_ylabel("Distance to Trojan Center ($FD_T$)", fontsize=11, fontweight='bold', fontstyle='italic', labelpad=4)
+ax.set_xlim(0, max_val)
+ax.set_ylim(0, max_val)
+
+for tick in ax.get_xticklabels() + ax.get_yticklabels():
+    tick.set_fontweight('bold')
+    tick.set_fontsize(10)
+
+ax.tick_params(direction='in', top=True, right=True, length=4, width=0.8)
+ax.grid(True, linestyle="--", alpha=0.4)
+leg = ax.legend(loc="upper left", frameon=True, framealpha=0.95, edgecolor='black', fancybox=False, fontsize=9.5)
+for text in leg.get_texts():
+    text.set_fontweight('bold')
+
 plt.tight_layout()
 
 screenshot_path = SCREENSHOTS_DIR / "fusion_distance_classification.png"
-plt.savefig(screenshot_path, dpi=300)
-plt.close()
+fig.savefig(screenshot_path, dpi=300)
+plt.close(fig)
 print(f"[+] Saved decision boundary classification plot to {screenshot_path}")
