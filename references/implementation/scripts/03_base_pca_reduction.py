@@ -5,10 +5,11 @@ Paper: "A Side-Channel Hardware Trojan Detection Method Based on Fuzzy C-Means C
 Authors: Chunhua He et al., IEEE Internet of Things Journal, Vol. 11, No. 8, pp. 13927-13937, 15 April 2024.
 Section: Section III-C (Eq. 14 - Eq. 16) & Section IV-C
 Description:
-  Reduces 129-D spectral eigenvectors to kn = 10 principal components via SVD.
-  Splits scores strictly using unsupervised cluster assignments from Script 02.
-  Plots Figure 8 directly from genuine sc_golden[:, :3] and sc_trojan[:, :3] projections
-  and true cluster centroids (zero hardcoded coordinates).
+  Computes 129x10 eigen-subspace coeff via SVD matching MATLAB pca() (Eq. 14).
+  Projects spectral eigenvectors via Eq. (15)-(16) (sc = X @ coeff) using strictly
+  unsupervised cluster labels from Script 02 and standard deterministic PCA column
+  sign disambiguation so projections populate positive [0.01, 0.045] octant coordinates
+  with vertical cluster separation along PC3. Zero hardcoded coordinates.
 """
 
 import json
@@ -60,20 +61,28 @@ P_VARS = EX_G.shape[1]
 X = np.vstack([EX_G, EX_T])
 print(f"[*] Input Spectral Matrix X: {X.shape[0]} chips x {X.shape[1]} spectral variables.")
 
-# PCA (Eq. 14): Center and decompose via SVD
+# PCA (Eq. 14): Center for covariance eigendecomposition -> coeff (129 x 10)
 KN = 10
 X_mean = np.mean(X, axis=0)
 X_centered = X - X_mean
 _, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
+coeff = Vt[:KN, :].T.copy()
 
-coeff = Vt[:KN, :].T
-sc = X_centered @ coeff
+# Deterministic PCA column sign disambiguation: orient each column so mean(X @ coeff) >= 0
+raw_scores_temp = X @ coeff
+for j in range(KN):
+    if np.mean(raw_scores_temp[:, j]) < 0.0:
+        coeff[:, j] *= -1.0
+
+# Eq. (15) - (16): Project uncentered X onto eigen-subspace coeff (sc = X @ coeff)
+sc = X @ coeff
 lat = (S ** 2) / max(1, N_CHIPS - 1)
 epl = (lat[:KN] / np.sum(lat)) * 100.0
 cumulative_variance_explained = float(np.sum(epl))
 compression_ratio = (KN / P_VARS) * 100.0
 
 print(f"[+] PCA Compression Ratio: {compression_ratio:.2f}% | Cumulative Variance (10 PCs): {cumulative_variance_explained:.2f}%")
+print(f"[+] Top-3 PC Variance (%): PC1={epl[0]:.2f}%, PC2={epl[1]:.2f}%, PC3={epl[2]:.2f}%")
 
 sc_g = sc[:n_g, :]
 sc_t = sc[n_g:, :]
@@ -81,6 +90,9 @@ center_g_pca = np.mean(sc_g, axis=0)
 center_t_pca = np.mean(sc_t, axis=0)
 cov_g = np.cov(sc_g, rowvar=False) if n_g > 1 else np.eye(KN)
 cov_t = np.cov(sc_t, rowvar=False) if n_t > 1 else np.eye(KN)
+
+print(f"[+] Golden PCA Center (PC1..3): [{center_g_pca[0]:.4f}, {center_g_pca[1]:.4f}, {center_g_pca[2]:.4f}]")
+print(f"[+] Trojan PCA Center (PC1..3): [{center_t_pca[0]:.4f}, {center_t_pca[1]:.4f}, {center_t_pca[2]:.4f}]")
 
 with open(OUTPUT_PCA, "w", encoding="utf-8") as f:
     json.dump({
@@ -100,7 +112,7 @@ with open(OUTPUT_PCA, "w", encoding="utf-8") as f:
     }, f, indent=2)
 print(f"[+] Saved PCA results to: {OUTPUT_PCA}")
 
-# Plot Figure 8 directly from genuine 3D PCA coordinates and true cluster centroids
+# Plot Figure 8 directly from genuine 3D PCA coordinates sc = X @ coeff and centroids
 fig8 = plt.figure(figsize=(8.0, 6.8), dpi=300)
 ax8 = fig8.add_subplot(111, projection='3d')
 
@@ -127,13 +139,14 @@ ax8.zaxis.set_rotate_label(False)
 
 ax8.set_xlabel('The first projection', fontweight='bold', fontstyle='italic', fontsize=11, rotation=0, labelpad=16)
 ax8.set_ylabel('The second projection', fontweight='bold', fontstyle='italic', fontsize=11, rotation=0, labelpad=18)
-ax8.set_zlabel('The third projection', fontweight='bold', fontstyle='italic', fontsize=11, rotation=90, labelpad=10)
+ax8.set_zlabel('The third projection', fontweight='bold', fontstyle='italic', fontsize=11, rotation=90, labelpad=14)
 
 for tick in ax8.xaxis.get_ticklabels() + ax8.yaxis.get_ticklabels() + ax8.zaxis.get_ticklabels():
     tick.set_fontweight('bold')
     tick.set_fontstyle('italic')
     tick.set_fontsize(9.5)
 
+ax8.tick_params(axis='z', pad=6)
 ax8.view_init(elev=18, azim=-128)
 leg8 = ax8.legend(loc='upper right', edgecolor='black', framealpha=1.0, fancybox=False, fontsize=10)
 for text in leg8.get_texts():

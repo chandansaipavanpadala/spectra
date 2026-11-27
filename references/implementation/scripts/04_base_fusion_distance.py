@@ -6,7 +6,8 @@ Authors: Chunhua He et al., IEEE Internet of Things Journal, Vol. 11, No. 8, pp.
 Section: Section III-D (Eq. 17 - Eq. 20) & Section IV-C
 Description:
   Computes genuine 129-D Euclidean Distance (Eq. 17) and 10-D squared Mahalanobis Distance
-  matching MATLAB mahal() (Eq. 18, Ridge regularization 1e-10 * I).
+  matching MATLAB mahal(PEV, sc) (Eq. 18, minimal numerical jitter 1e-12 * I).
+  Projects validation vectors using Eq. (16) (PEV = EV @ coeff).
   Evaluates Fusion Distance (Eq. 19: FD = 0.5*ED + 0.5*MD) and Decision Ratio R_FD = FD_G / FD_T.
   Zero hardcoded coordinates or fabricated ED/MD values.
 """
@@ -50,7 +51,6 @@ mu_G = np.array(fcc_data["mu_golden"], dtype=np.float64)
 mu_T = np.array(fcc_data["mu_trojan"], dtype=np.float64)
 
 coeff = np.array(pca_data["coeff_eigen_subspace"], dtype=np.float64)
-X_mean = np.array(pca_data["mean_centering_vector"], dtype=np.float64)
 sc_g = np.array(pca_data["sc_golden"], dtype=np.float64)
 sc_t = np.array(pca_data["sc_trojan"], dtype=np.float64)
 
@@ -58,8 +58,8 @@ mean_sc_g = np.mean(sc_g, axis=0)
 mean_sc_t = np.mean(sc_t, axis=0)
 
 k_dim = coeff.shape[1]
-cov_g = np.array(pca_data["cov_golden"], dtype=np.float64) + 1e-8 * np.eye(k_dim)
-cov_t = np.array(pca_data["cov_trojan"], dtype=np.float64) + 1e-8 * np.eye(k_dim)
+cov_g = np.array(pca_data["cov_golden"], dtype=np.float64) + 1e-12 * np.eye(k_dim)
+cov_t = np.array(pca_data["cov_trojan"], dtype=np.float64) + 1e-12 * np.eye(k_dim)
 inv_cov_g = np.linalg.pinv(cov_g)
 inv_cov_t = np.linalg.pinv(cov_t)
 
@@ -84,10 +84,10 @@ for chip in validation_chips:
     ed_g = float(np.linalg.norm(ev - mu_G))
     ed_t = float(np.linalg.norm(ev - mu_T))
 
-    # Eq. 16: Project to 10-D PCA Subspace
-    pev = (ev - X_mean) @ coeff
+    # Eq. 16: Project to 10-D PCA Subspace (PEV = EV @ coeff)
+    pev = ev @ coeff
 
-    # Eq. 18: 10-D Squared Mahalanobis Distance matching MATLAB mahal()
+    # Eq. 18: Exact MATLAB mahal(PEV, sc) squared Mahalanobis distance
     diff_g = pev - mean_sc_g
     diff_t = pev - mean_sc_t
     md_g = float(max(0.0, diff_g @ inv_cov_g @ diff_g.T))
@@ -175,7 +175,7 @@ ax9.scatter(fd_g_trojan, fd_t_trojan, color='red', marker=(8, 2, 0), s=80,
             linewidth=1.3, label='Trojan chip')
 
 all_vals = fd_g_golden + fd_t_golden + fd_g_trojan + fd_t_trojan
-max_lim = max(all_vals) * 1.10 if all_vals else 1.0
+max_lim = max(all_vals) * 1.08 if all_vals else 1.0
 boundary_vals = np.linspace(0, max_lim, 100)
 ax9.plot(boundary_vals, boundary_vals, color='#55FF00', linewidth=2.0, label='Boundary "y=x"')
 
@@ -190,7 +190,7 @@ for tick in ax9.get_xticklabels() + ax9.get_yticklabels():
     tick.set_fontsize(11)
 
 ax9.tick_params(direction='in', top=True, right=True, length=4, width=0.8)
-ax9.grid(False)
+ax9.grid(True, linestyle='-', alpha=0.30, color='gray')
 
 leg9 = ax9.legend(loc='upper center', bbox_to_anchor=(0.48, 0.98), edgecolor='black', framealpha=1.0, fancybox=False, fontsize=11)
 for text in leg9.get_texts():
