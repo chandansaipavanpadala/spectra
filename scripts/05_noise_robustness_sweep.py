@@ -23,8 +23,7 @@ from spectra_signal_core import (
     FS, F_CLK_NOM, N_SAMPLES,
     load_vivado_csv_traces,
     synthesize_trace_from_vivado_csv,
-    extract_ev_single_bin,
-    extract_ev_ahbe,
+    extract_ev_both,
     run_unsupervised_pipeline,
 )
 
@@ -54,31 +53,27 @@ def evaluate_condition(vcc_g, tog_g, vcc_t, tog_t, snr_db, drift_pct):
     for i in range(N_TRAIN_GOLDEN):
         tr = synthesize_trace_from_vivado_csv(vcc_g, tog_g, is_trojan=False, chip_seed=i,
                                               snr_db=snr_db, clk_drift_pct=_die_drift(1000 + i), pvt_sigma=PVT_SIGMA)
-        ea, _, re_a, _ = extract_ev_single_bin(tr)
-        eb, _, re_b, _ = extract_ev_ahbe(tr)
+        ea, re_a, eb, re_b = extract_ev_both(tr)
         xa_tr.append(ea); xb_tr.append(eb); ea_tr.append(re_a); eb_tr.append(re_b)
 
     for i in range(N_TRAIN_TROJAN):
         tr = synthesize_trace_from_vivado_csv(vcc_g, tog_g, vcc_t_cycles=vcc_t, tog_t_cycles=tog_t,
                                               is_trojan=True, chip_seed=i + 50,
                                               snr_db=snr_db, clk_drift_pct=_die_drift(2000 + i), pvt_sigma=PVT_SIGMA)
-        ea, _, re_a, _ = extract_ev_single_bin(tr)
-        eb, _, re_b, _ = extract_ev_ahbe(tr)
+        ea, re_a, eb, re_b = extract_ev_both(tr)
         xa_tr.append(ea); xb_tr.append(eb); ea_tr.append(re_a); eb_tr.append(re_b)
 
     for i in range(N_VAL_GOLDEN):
         tr = synthesize_trace_from_vivado_csv(vcc_g, tog_g, is_trojan=False, chip_seed=i + 200,
                                               snr_db=snr_db, clk_drift_pct=_die_drift(3000 + i), pvt_sigma=PVT_SIGMA)
-        ea, _, _, _ = extract_ev_single_bin(tr)
-        eb, _, _, _ = extract_ev_ahbe(tr)
+        ea, _, eb, _ = extract_ev_both(tr)
         xa_val.append(ea); xb_val.append(eb); y_val.append(0)
 
     for i in range(N_VAL_TROJAN):
         tr = synthesize_trace_from_vivado_csv(vcc_g, tog_g, vcc_t_cycles=vcc_t, tog_t_cycles=tog_t,
                                               is_trojan=True, chip_seed=i + 250,
                                               snr_db=snr_db, clk_drift_pct=_die_drift(4000 + i), pvt_sigma=PVT_SIGMA)
-        ea, _, _, _ = extract_ev_single_bin(tr)
-        eb, _, _, _ = extract_ev_ahbe(tr)
+        ea, _, eb, _ = extract_ev_both(tr)
         xa_val.append(ea); xb_val.append(eb); y_val.append(1)
 
     y_val = np.array(y_val)

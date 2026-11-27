@@ -58,29 +58,30 @@ obj_history = []
 centers = np.zeros((C, n_features), dtype=np.float64)
 
 for it in range(MAX_ITER):
-    U_m = U ** M
-    sum_u_m = np.sum(U_m, axis=1, keepdims=True)
-    centers = (U_m @ X) / (sum_u_m + 1e-15)
+    U_prev = U.copy()
+    Um = U ** M
+    sum_u_m = np.sum(Um, axis=1, keepdims=True)
+    centers = (Um @ X) / (sum_u_m + 1e-15)
 
     dist = np.zeros((C, n_samples), dtype=np.float64)
     for j in range(C):
         dist[j] = np.linalg.norm(X - centers[j], axis=1)
 
-    J_fuz = float(np.sum(U_m * (dist ** 2)))
+    J_fuz = float(np.sum(Um * (dist ** 2)))
     obj_history.append(J_fuz)
 
     if it % 10 == 0 or it == 0:
         print(f"    Iteration {it+1:3d}: Objective Function J_fuz = {J_fuz:.8e}")
-
-    if it > 0 and abs(obj_history[-1] - obj_history[-2]) < EPSILON:
-        print(f"[+] FCC converged at iteration {it+1} (delta < {EPSILON:.1e}).")
-        break
 
     dist_safe = np.maximum(dist, 1e-12)
     power = 2.0 / (M - 1.0)
     for j in range(C):
         ratio = dist_safe[j:j+1, :] / dist_safe
         U[j] = 1.0 / np.sum(ratio ** power, axis=0)
+
+    if it > 0 and np.max(np.abs(U - U_prev)) < EPSILON:
+        print(f"[+] FCC converged at iteration {it+1} (max |dU| < {EPSILON:.1e}).")
+        break
 
 # Defuzzification
 cluster_labels = np.argmax(U, axis=0)

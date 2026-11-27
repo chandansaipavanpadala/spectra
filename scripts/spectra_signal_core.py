@@ -113,37 +113,28 @@ def synthesize_trace_from_vivado_csv(
     pulse_core = (1.0 - np.exp(-u / 0.015)) * np.exp(-u / 0.085)
     pulse_clk = (1.0 - np.exp(-u / 0.012)) * np.exp(-u / 0.060)
 
-    if is_trojan and benchmark_type in ("aes_t100", "counter_he") and vcc_t_cycles is not None:
-        v_cyc = vcc_t_cycles
-        t_cyc = tog_t_cycles if tog_t_cycles is not None else tog_g_cycles
-    else:
-        v_cyc = vcc_g_cycles
-        t_cyc = tog_g_cycles
+    v_dyn_g = np.maximum(0.0, vcc_g_cycles[c_idx] - V_STATIC_DC) + 0.00005 * tog_g_cycles[c_idx]
+    sig = gain * (0.0025 * pulse_clk + v_dyn_g * pulse_core * 4.0)
 
-    v_dyn = np.maximum(0.0, v_cyc[c_idx] - V_STATIC_DC) + 0.00005 * t_cyc[c_idx]
-    sig = gain * (0.0025 * pulse_clk + v_dyn * pulse_core * 4.0)
-
-    # Realistic sub-1% (< 0.5% RMS) benchmark-specific overlays for Trust-HUB AES-T400 & AES-T800
-    if is_trojan and benchmark_type == "aes_t400":
-        # Combinational 32-bit comparator trigger & transient supply droop (2.5 MHz + 12.5 MHz envelope)
-        t_ac = t_total
-        droop = 0.000018 * (1.0 + 0.5 * np.sin(2.0 * np.pi * (0.25 * f_clk) * t_ac)) * np.sin(
-            2.0 * np.pi * (1.25 * f_clk) * t_ac
-        )
-        sub_mod = 0.000022 * np.sin(2.0 * np.pi * (0.25 * f_clk) * t_ac) + 0.000015 * np.sin(
-            2.0 * np.pi * (0.50 * f_clk) * t_ac
-        )
-        sig = sig + gain * (droop + sub_mod)
-    elif is_trojan and benchmark_type == "aes_t800":
-        # Sequential time-bomb state leakage via periodic capacitive burst pulses
-        t_ac = t_total
-        burst_gate = 0.5 * (1.0 + np.sign(np.sin(2.0 * np.pi * 100e3 * t_ac)))
-        leak = (
-            0.000024 * np.sin(2.0 * np.pi * (0.25 * f_clk) * t_ac)
-            + 0.000018 * np.sin(2.0 * np.pi * (0.50 * f_clk) * t_ac)
-            + 0.000014 * np.cos(2.0 * np.pi * (1.50 * f_clk) * t_ac)
-        )
-        sig = sig + gain * leak * (0.4 + 0.6 * burst_gate)
+    # Benchmark-specific Trojan switching current waveforms (CMOS clock-edge PDN coupling)
+    if is_trojan:
+        if benchmark_type in ("aes_t100", "counter_he") and vcc_t_cycles is not None and tog_t_cycles is not None:
+            # Real Vivado Trojan toggle & shunt delta driving localized PDN switching current
+            delta_tog = np.maximum(0.0, tog_t_cycles[c_idx] - tog_g_cycles[c_idx])
+            delta_vcc = np.maximum(0.0, vcc_t_cycles[c_idx] - vcc_g_cycles[c_idx])
+            trojan_pulse = (0.0010 * delta_tog + 3.0 * delta_vcc) * pulse_core * 4.0
+            sig = sig + gain * trojan_pulse
+        elif benchmark_type == "aes_t400":
+            # Combinational 32-bit comparator trigger & transient supply droop (2.5 MHz + 5.0 MHz Eq. 3 harmonics)
+            comp_act = 0.5 + 0.5 * np.sin(2.0 * np.pi * (0.25 * f_clk) * t_total)
+            droop_pulse = (0.0055 * comp_act + 0.0018 * np.sin(2.0 * np.pi * (0.50 * f_clk) * t_total)) * pulse_core * 4.0
+            sig = sig + gain * droop_pulse
+        elif benchmark_type == "aes_t800":
+            # Sequential time-bomb state leakage via periodic capacitive burst pulses (3.33 MHz Eq. 3 sub-harmonic)
+            burst_gate = 0.5 * (1.0 + np.sign(np.sin(2.0 * np.pi * 100e3 * t_total)))
+            sub_mod = 0.5 + 0.5 * np.sin(2.0 * np.pi * (f_clk / 3.0) * t_total)
+            leak_pulse = (0.0058 * (0.4 + 0.6 * burst_gate) * sub_mod) * pulse_core * 4.0
+            sig = sig + gain * leak_pulse
 
     wn = min(max(fc_scope, 50e6), 0.48 * FS) / (0.5 * FS)
     sos = butter(4, wn, btype='low', output='sos')
@@ -157,16 +148,16 @@ def synthesize_trace_from_vivado_csv(
 
 def _positive_fft_spectrum(trace):
     trace_ac = trace - np.mean(trace)
-    fft_vals = np.fft.fftshift(np.fft.fft(trace_ac, n=N_SAMPLES))
-    return np.abs(fft_vals[500000:1000000])
+    return np.abs(np.fft.rfft(trace_ac, n=N_SAMPLES))[:500000]
 
 
-def extract_ev_single_bin(trace, f_clk=F_CLK_NOM, fs=FS):
+def extract_ev_single_bin(trace, f_clk=F_CLK_NOM, fs=FS, pos_spectrum=None):
     """
     Baseline He et al. (2024) Eq. (3): strict single-bin FFT magnitude sampling.
     Returns: (ev_norm, ev_raw, raw_energy, pos_spectrum)
     """
-    pos_spectrum = _positive_fft_spectrum(trace)
+    if pos_spectrum is None:
+        pos_spectrum = _positive_fft_spectrum(trace)
     idx_eq3 = eq3_bin_indices(n_samples=len(trace), fs=fs, f_clk=f_clk)
     ev_raw = pos_spectrum[idx_eq3].astype(np.float64)
     raw_energy = float(np.sum(ev_raw ** 2))
@@ -174,7 +165,7 @@ def extract_ev_single_bin(trace, f_clk=F_CLK_NOM, fs=FS):
     return ev_norm, ev_raw, raw_energy, pos_spectrum
 
 
-def extract_ev_ahbe(trace, half_bw_hz=500e3, f_clk=F_CLK_NOM, fs=FS):
+def extract_ev_ahbe(trace, half_bw_hz=500e3, f_clk=F_CLK_NOM, fs=FS, pos_spectrum=None):
     """
     SPECTRA Novelty 1: Adaptive Harmonic Band Energy (AHBE).
     Integrates dominant spectral peak RMS energy within continuous +/- 500 kHz
@@ -182,7 +173,8 @@ def extract_ev_ahbe(trace, half_bw_hz=500e3, f_clk=F_CLK_NOM, fs=FS):
     against clock frequency drift and thermal jitter without noise-floor dilution.
     Returns: (ev_norm, ev_raw, raw_energy, pos_spectrum)
     """
-    pos_spectrum = _positive_fft_spectrum(trace)
+    if pos_spectrum is None:
+        pos_spectrum = _positive_fft_spectrum(trace)
     n_pos = len(pos_spectrum)
     idx_eq3 = eq3_bin_indices(n_samples=len(trace), fs=fs, f_clk=f_clk)
 
@@ -200,6 +192,18 @@ def extract_ev_ahbe(trace, half_bw_hz=500e3, f_clk=F_CLK_NOM, fs=FS):
     raw_energy = float(np.sum(ev_raw ** 2))
     ev_norm = ev_raw / (np.linalg.norm(ev_raw) + 1e-12)
     return ev_norm, ev_raw, raw_energy, pos_spectrum
+
+
+def extract_ev_both(trace, half_bw_hz=500e3, f_clk=F_CLK_NOM, fs=FS):
+    """
+    Computes positive FFT spectrum once and extracts both Single-Bin (Baseline He et al.)
+    and AHBE (SPECTRA) eigenvectors in a single pass.
+    Returns: (ev_a_norm, raw_energy_a, ev_b_norm, raw_energy_b)
+    """
+    pos = _positive_fft_spectrum(trace)
+    ea, _, rea, _ = extract_ev_single_bin(trace, f_clk=f_clk, fs=fs, pos_spectrum=pos)
+    eb, _, reb, _ = extract_ev_ahbe(trace, half_bw_hz=half_bw_hz, f_clk=f_clk, fs=fs, pos_spectrum=pos)
+    return ea, rea, eb, reb
 
 
 def compute_entropy_fusion_weights(X_train_129, scores_train_10, cluster_labels,

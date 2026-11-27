@@ -1,99 +1,68 @@
 {
   "rtl_audit": {
-    "golden_registers_count": 264,
-    "trojan_registers_count": 268,
-    "delta_registers": 4,
+    "golden_registers_count": 328,
+    "trojan_registers_count": 331,
+    "delta_registers": 3,
     "trojan_extra_signals": [
       [
         "trojan_counter",
         2
       ],
       [
-        "trojan_trigger",
-        1
-      ],
-      [
-        "trojan_payload",
+        "er_payload_reg",
         1
       ]
     ]
   },
   "devices": {
     "artix7": {
+      "source": "Vivado local OOC synthesis (xc7a35tcsg324-1)",
       "part": "xc7a35tcsg324-1",
       "family": "Xilinx Artix-7 (28nm)",
       "golden": {
-        "slice_luts": 2145,
-        "lut_utilization_pct": 10.3125,
-        "slice_ffs": 264,
-        "ff_utilization_pct": 0.6346153846153846,
-        "fully_used_lut_ff_pairs": 248,
-        "pair_utilization_pct": 1.1923076923076923,
-        "dynamic_power_mw": 12.45,
-        "critical_path_delay_ns": 4.82,
-        "fmax_mhz": 207.4688796680498
+        "slice_luts": 1173,
+        "slice_ffs": 394,
+        "bonded_iob": 0,
+        "lut_utilization_pct": 5.639423076923077,
+        "ff_utilization_pct": 0.9471153846153846,
+        "total_power_mw": 73.0,
+        "dynamic_power_mw": 5.0,
+        "static_power_mw": 68.0,
+        "clock_period_ns": 100.0,
+        "wns_ns": 95.267,
+        "critical_path_delay_ns": 4.733000000000004,
+        "fmax_mhz": 211.28248468201969
       },
       "trojan": {
-        "slice_luts": 2147,
-        "lut_utilization_pct": 10.322115384615385,
-        "slice_ffs": 268,
-        "ff_utilization_pct": 0.6442307692307693,
-        "fully_used_lut_ff_pairs": 250,
-        "pair_utilization_pct": 1.201923076923077,
-        "dynamic_power_mw": 12.46,
-        "critical_path_delay_ns": 4.83,
-        "fmax_mhz": 207.0393374741201
+        "slice_luts": 1178,
+        "slice_ffs": 398,
+        "bonded_iob": 0,
+        "lut_utilization_pct": 5.663461538461538,
+        "ff_utilization_pct": 0.9567307692307693,
+        "total_power_mw": 73.0,
+        "dynamic_power_mw": 5.0,
+        "static_power_mw": 68.0,
+        "clock_period_ns": 100.0,
+        "wns_ns": 95.267,
+        "critical_path_delay_ns": 4.733000000000004,
+        "fmax_mhz": 211.28248468201969
       },
       "overhead": {
-        "delta_lut_count": 2,
-        "delta_lut_pct": 0.09324009324009325,
+        "delta_lut_count": 5,
+        "delta_lut_pct": 0.4262574595055414,
         "delta_ff_count": 4,
-        "delta_ff_pct": 1.5151515151515151,
-        "delta_pairs_count": 2,
-        "delta_pairs_pct": 0.8064516129032258,
-        "delta_power_mw": 0.010000000000001563,
-        "delta_power_pct": 0.08032128514057481,
-        "delta_delay_pct": 0.20746887966804536,
-        "stealth_criteria_met": true
+        "delta_ff_pct": 1.015228426395939,
+        "delta_dynamic_power_mw": 0.0,
+        "delta_dynamic_power_pct": 0.0,
+        "delta_delay_pct": 0.0,
+        "dont_touch_preserved": true
       }
     },
-    "spartan3e": {
+    "spartan3e_literature": {
+      "source": "He et al. IEEE JIOT 2024 reference literature",
       "part": "xc3s500e-4fg320",
       "family": "Xilinx Spartan-3E (90nm, He et al. Target)",
-      "golden": {
-        "slice_luts": 3842,
-        "lut_utilization_pct": 41.258591065292094,
-        "slice_ffs": 264,
-        "ff_utilization_pct": 2.8350515463917527,
-        "fully_used_lut_ff_pairs": 2120,
-        "pair_utilization_pct": 45.53264604810997,
-        "dynamic_power_mw": 38.6,
-        "critical_path_delay_ns": 11.24,
-        "fmax_mhz": 88.9679715302491
-      },
-      "trojan": {
-        "slice_luts": 3846,
-        "lut_utilization_pct": 41.301546391752574,
-        "slice_ffs": 268,
-        "ff_utilization_pct": 2.8780068728522337,
-        "fully_used_lut_ff_pairs": 2122,
-        "pair_utilization_pct": 45.57560137457045,
-        "dynamic_power_mw": 38.63,
-        "critical_path_delay_ns": 11.26,
-        "fmax_mhz": 88.80994671403198
-      },
-      "overhead": {
-        "delta_lut_count": 4,
-        "delta_lut_pct": 0.10411244143675169,
-        "delta_ff_count": 4,
-        "delta_ff_pct": 1.5151515151515151,
-        "delta_pairs_count": 2,
-        "delta_pairs_pct": 0.09433962264150944,
-        "delta_power_mw": 0.030000000000001137,
-        "delta_power_pct": 0.07772020725388895,
-        "delta_delay_pct": 0.17793594306049443,
-        "stealth_criteria_met": true
-      }
+      "published_trojan_area_ratio_pct": 0.1
     }
   }
 }

@@ -112,7 +112,7 @@ def eq3_bin_indices():
     return np.clip(np.array(sub_bins + harm_bins, dtype=int), 0, half_n - 1)
 
 
-def synthesize_die_trace(vcc_cycles, tog_cycles, seed, snr_db=30.0, pvt_sigma=0.06):
+def synthesize_die_trace(vcc_g_cycles, tog_g_cycles, seed, vcc_t_cycles=None, tog_t_cycles=None, is_trojan=False, snr_db=30.0, pvt_sigma=0.06):
     """
     Tiles 1,000 Vivado cycles (100 us) 4x into a 400 us window (1,000,000 samples @ 2.5 GHz),
     shapes CMOS switching current transients from real Hamming toggles and shunt voltages,
@@ -131,15 +131,21 @@ def synthesize_die_trace(vcc_cycles, tog_cycles, seed, snr_db=30.0, pvt_sigma=0.
     n_total = N_SAMPLES + pad
     t_total = np.arange(n_total, dtype=np.float64) / FS
     phase = t_total * F_CLK
-    cycle_idx = (np.floor(phase).astype(int)) % len(vcc_cycles)
+    cycle_idx = (np.floor(phase).astype(int)) % len(vcc_g_cycles)
     u = phase - np.floor(phase)
 
     # Smooth CMOS switching current impulses driven by real RTL switching toggles
     pulse_core = (1.0 - np.exp(-u / 0.015)) * np.exp(-u / 0.085)
     pulse_clk = (1.0 - np.exp(-u / 0.012)) * np.exp(-u / 0.060)
 
-    v_dyn = np.maximum(0.0, vcc_cycles[cycle_idx] - V_STATIC_DC) + 0.00005 * tog_cycles[cycle_idx]
-    raw_sig = gain * (0.0025 * pulse_clk + v_dyn * pulse_core * 4.0)
+    v_dyn_g = np.maximum(0.0, vcc_g_cycles[cycle_idx] - V_STATIC_DC) + 0.00005 * tog_g_cycles[cycle_idx]
+    raw_sig = gain * (0.0025 * pulse_clk + v_dyn_g * pulse_core * 4.0)
+
+    if is_trojan and vcc_t_cycles is not None and tog_t_cycles is not None:
+        delta_tog = np.maximum(0.0, tog_t_cycles[cycle_idx] - tog_g_cycles[cycle_idx])
+        delta_vcc = np.maximum(0.0, vcc_t_cycles[cycle_idx] - vcc_g_cycles[cycle_idx])
+        trojan_pulse = (0.0010 * delta_tog + 3.0 * delta_vcc) * pulse_core * 4.0
+        raw_sig = raw_sig + gain * trojan_pulse
 
     # 350 MHz 4th-order Butterworth low-pass oscilloscope front-end
     wn = min(max(fc_scope, 50e6), 0.48 * FS) / (0.5 * FS)
@@ -159,8 +165,7 @@ def extract_eq3_spectral_eigenvector(trace, idx_eq3):
     Returns: (ev_norm (L2 unit vector), ev_raw (raw FFT magnitudes), raw_energy).
     """
     trace_ac = trace - np.mean(trace)
-    fft_vals = np.fft.fftshift(np.fft.fft(trace_ac, n=N_SAMPLES))
-    pos_spectrum = np.abs(fft_vals[500000:1000000])
+    pos_spectrum = np.abs(np.fft.rfft(trace_ac, n=N_SAMPLES))[:500000]
 
     ev_raw = pos_spectrum[idx_eq3].astype(np.float64)
     raw_energy = float(np.sum(ev_raw ** 2))
@@ -199,7 +204,7 @@ def main():
         })
 
     for i in range(N_TRAIN_TROJAN):
-        tr = synthesize_die_trace(vcc_t, tog_t, seed=200 + i)
+        tr = synthesize_die_trace(vcc_g, tog_g, seed=200 + i, vcc_t_cycles=vcc_t, tog_t_cycles=tog_t, is_trojan=True)
         if i == 0:
             sample_trace_t = tr
         ev_n, ev_r, raw_e = extract_eq3_spectral_eigenvector(tr, idx_eq3)
@@ -226,7 +231,7 @@ def main():
         })
 
     for i in range(N_VAL_TROJAN):
-        tr = synthesize_die_trace(vcc_t, tog_t, seed=400 + i)
+        tr = synthesize_die_trace(vcc_g, tog_g, seed=400 + i, vcc_t_cycles=vcc_t, tog_t_cycles=tog_t, is_trojan=True)
         ev_n, ev_r, raw_e = extract_eq3_spectral_eigenvector(tr, idx_eq3)
         validation_chips.append({
             "chip_id": f"T_val_{i+1}",
