@@ -6,25 +6,30 @@ Novel Enhancement: Adaptive Harmonic Band Energy (AHBE) Integration
 """
 
 import json
-import csv
-import shutil
+import sys
+from pathlib import Path
 import numpy as np
 import matplotlib
-matplotlib.use('Agg') # Headless Matplotlib execution
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from pathlib import Path
 
-# Repository root directory
-REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from spectra_signal_core import (
+    FS, F_CLK_NOM, N_SAMPLES,
+    load_vivado_csv_traces,
+    synthesize_trace_from_vivado_csv,
+    extract_ev_ahbe,
+)
+
+REPO_ROOT = SCRIPT_DIR.parent
 REPORTS_DIR = REPO_ROOT / "reports"
 SCREENSHOTS_DIR = REPO_ROOT / "screenshots"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Experimental Parameters conforming to Section IV-A IEEE JIOT 2024
-FS = 2.5e9          # Sampling Frequency: 2.5 GHz
-F_CLK = 10e6        # Clock Frequency: 10 MHz
-N_SAMPLES = 1000000 # 1,000,000 sampling points
 N_CHIPS_TRAIN_GOLDEN = 24
 N_CHIPS_TRAIN_TROJAN = 24
 N_CHIPS_VAL_GOLDEN = 12
@@ -34,242 +39,100 @@ print("=========================================================================
 print("[+] Executing SPECTRA Script 01: SFA & AHBE Feature Extraction...")
 print("================================================================================")
 
-# ==============================================================================
-# Helper Function: Ingest Vivado Hardware Co-Simulation Traces
-# Conformance: Section IV-A IEEE JIOT 2024 Reference Paper
-# ==============================================================================
-def ingest_vivado_csv_traces(golden_csv_path, trojan_csv_path):
-    """
-    Ingests and validates Vivado hardware switching traces.
-    If CSVs are absent or stubs (< 100 bytes), generates deterministic 1000-cycle
-    hardware co-simulation traces conforming to Section IV-A.
-    """
-    golden_csv_path = Path(golden_csv_path)
-    trojan_csv_path = Path(trojan_csv_path)
-
-    # Check if files exist and are populated (> 100 bytes)
-    needs_gen = (not golden_csv_path.exists()) or (golden_csv_path.stat().st_size < 100) or \
-                (not trojan_csv_path.exists()) or (trojan_csv_path.stat().st_size < 100)
-
-    # Check if base implementation reports already have full CSVs
-    base_reports = REPO_ROOT / "references" / "implementation" / "reports"
-    base_golden = base_reports / "power_trace_golden.csv"
-    base_trojan = base_reports / "power_trace_trojan.csv"
-
-    if needs_gen and base_golden.exists() and (base_golden.stat().st_size >= 100) and \
-       base_trojan.exists() and (base_trojan.stat().st_size >= 100):
-        golden_csv_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(base_golden, golden_csv_path)
-        shutil.copyfile(base_trojan, trojan_csv_path)
-        needs_gen = False
-
-    if needs_gen:
-        golden_csv_path.parent.mkdir(parents=True, exist_ok=True)
-        trojan_csv_path.parent.mkdir(parents=True, exist_ok=True)
-        rng_g = np.random.RandomState(42)
-        rng_t = np.random.RandomState(84)
-
-        with open(golden_csv_path, "w", newline="", encoding="utf-8") as fg, \
-             open(trojan_csv_path, "w", newline="", encoding="utf-8") as ft:
-            wg = csv.writer(fg)
-            wt = csv.writer(ft)
-            hdr = ["cycle", "timestamp_ns", "hamming_toggles", "vccint_shunt_mv", "trojan_active"]
-            wg.writerow(hdr)
-            wt.writerow(hdr)
-
-            for cycle in range(1, 1001):
-                ts = cycle * 100
-                is_round = (cycle % 11 != 0)
-                base_t = rng_g.poisson(26.5) if is_round else rng_g.poisson(4.0)
-                vcc_g = 8.500 + 0.150 * base_t + rng_g.normal(0, 0.05)
-
-                troj_t = base_t
-                if cycle % 30 == 0:
-                    troj_t += 1
-                vcc_t = 8.500 + 0.150 * troj_t + 0.035 + rng_t.normal(0, 0.05)
-                troj_act = 1 if (cycle % 4 == 0) else 0
-
-                wg.writerow([cycle, ts, base_t, f"{vcc_g:.3f}", 0])
-                wt.writerow([cycle, ts, troj_t, f"{vcc_t:.3f}", troj_act])
-
-        # Also copy to base reports if directory exists
-        if base_reports.exists():
-            shutil.copyfile(golden_csv_path, base_golden)
-            shutil.copyfile(trojan_csv_path, base_trojan)
-
-    # Read and parse CSV traces
-    def parse_trace(p):
-        cycles, toggles = [], []
-        with open(p, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for r in reader:
-                cycles.append(int(r["cycle"]))
-                toggles.append(int(r["hamming_toggles"]))
-        return cycles, toggles
-
-    c_g, tog_g = parse_trace(golden_csv_path)
-    c_t, tog_t = parse_trace(trojan_csv_path)
-
-    n_cycles = len(c_g)
-    mean_g = float(np.mean(tog_g))
-    mean_t = float(np.mean(tog_t))
-    delta_pct = ((mean_t - mean_g) / mean_g) * 100.0
-
-    print("======================================================================")
-    print("[+] VIVADO HARDWARE CO-SIMULATION TRACE INGESTION")
-    print("======================================================================")
-    print(f"[+] Golden Trace File : reports/{golden_csv_path.name}")
-    print(f"[+] Trojan Trace File : reports/{trojan_csv_path.name}")
-    print(f"[+] Simulated Cycles  : {n_cycles} clock cycles (f_clk = {F_CLK/1e6:.1f} MHz)")
-    print(f"[+] Golden Mean Toggle: {mean_g:.3f} bits/cycle")
-    print(f"[+] Trojan Mean Toggle: {mean_t:.3f} bits/cycle (+{delta_pct:.2f}% Switching Delta)")
-    print(f"[+] Functional Parity : PASSED (Ciphertext state_out 100% identical)")
-    print("======================================================================\n")
-
-    return {
-        "n_cycles": n_cycles,
-        "mean_golden": mean_g,
-        "mean_trojan": mean_t,
-        "delta_pct": delta_pct
-    }
-
-# Ingest hardware co-simulation traces
-vivado_trace_info = ingest_vivado_csv_traces(
+tog_g, vcc_g, tog_t, vcc_t = load_vivado_csv_traces(
     REPORTS_DIR / "power_trace_golden.csv",
-    REPORTS_DIR / "power_trace_trojan.csv"
+    REPORTS_DIR / "power_trace_trojan.csv",
 )
 
-def generate_chip_trace(is_trojan=False, noise_level=0.015, chip_id=0):
-    """
-    Generates 1M-point time-domain side-channel power proxy trace d[t].
-    Eq. 1 & Section IV-A: Core switching + localized Trojan capacitive modulation + thermal noise.
-    """
-    np.random.seed(chip_id * 31 + (2000 if is_trojan else 0))
-    t = np.arange(N_SAMPLES) / FS
+mean_g = float(np.mean(tog_g))
+mean_t = float(np.mean(tog_t))
+delta_pct = ((mean_t - mean_g) / (mean_g + 1e-12)) * 100.0
+print(f"[+] Ingested Vivado CSV Traces: {len(tog_g)} cycles @ {F_CLK_NOM/1e6:.1f} MHz")
+print(f"[+] Golden Mean Toggle: {mean_g:.3f} bits/cycle | Trojan Mean Toggle: {mean_t:.3f} bits/cycle ({delta_pct:+.2f}%)")
 
-    # Baseline clock & core dynamic switching harmonics (10 MHz, 20 MHz, 30 MHz, ...)
-    clock_harmonics = (
-        0.8 * np.sin(2 * np.pi * F_CLK * t) +
-        0.4 * np.sin(2 * np.pi * (2 * F_CLK) * t) +
-        0.2 * np.sin(2 * np.pi * (3 * F_CLK) * t) +
-        0.1 * np.sin(2 * np.pi * (4 * F_CLK) * t)
-    )
-
-    # Process-Voltage-Temperature (PVT) background variations & thermal noise
-    pvt_variance = np.random.normal(0, 0.003, N_SAMPLES)
-    noise = np.random.normal(0, noise_level, N_SAMPLES)
-
-    trace = clock_harmonics + pvt_variance + noise
-
-    # Localized Trojan capacitive loading & inter-harmonic switching modulation (~0.1% area overhead)
-    if is_trojan:
-        # Trojan activation induces distinct inter-harmonic side-channel leakage peaks (15 MHz, 25 MHz, 35 MHz)
-        trojan_leakage = (
-            0.25 * np.sin(2 * np.pi * (1.5 * F_CLK) * t) +
-            0.18 * np.cos(2 * np.pi * (2.5 * F_CLK) * t) +
-            0.12 * np.sin(2 * np.pi * (3.5 * F_CLK) * t)
-        )
-        trace += trojan_leakage
-
-    return trace
-
-def extract_spectral_eigenvector(trace):
-    """
-    Eq. 1: 1M-point FFT formulation D[k] = sum(d[i] * exp(-j*2*pi*k*i/N)) with fftshift().
-    Eq. 2: Spectrum slicing Y = D[500001:1000000] across 0 to 1.25 GHz (fs = 2.5 GHz).
-    Eq. 3: 129-point Spectral Eigenvector (EV) sampling sub-harmonics (k=1..65) and harmonics (k=66..129).
-    NOVEL ENHANCEMENT: Adaptive Harmonic Band Energy (AHBE) continuous band integration.
-    """
-    fft_vals = np.fft.fftshift(np.fft.fft(trace, n=N_SAMPLES))
-    magnitude_spectrum = np.abs(fft_vals)
-
-    # Slice positive frequency spectrum (0 to 1.25 GHz, bins 500,000 to 1,000,000)
-    pos_spectrum = magnitude_spectrum[500000:1000000]
-    freq_bins = np.linspace(0, FS / 2, len(pos_spectrum))
-
-    # Eq. 3 Frequency Sampling Grid:
-    # k=1..65: Sub-harmonic frequency points (0 to F_CLK)
-    # k=66..129: Harmonic & inter-harmonic frequency points (F_CLK to 640 MHz)
-    sub_harmonics_freq = np.linspace(0, F_CLK, 65)
-    harmonics_freq = np.linspace(F_CLK + 5e6, 640e6, 64)
-    target_frequencies = np.concatenate([sub_harmonics_freq, harmonics_freq])
-
-    # Convert target frequencies (Hz) to bin indices in pos_spectrum
-    sampled_indices = (target_frequencies / (FS / 2) * (len(pos_spectrum) - 1)).astype(int)
-
-    # NOVEL ENHANCEMENT: Adaptive Harmonic Band Energy (AHBE)
-    # Continuous spectral band integration (+/- 500 kHz) around each harmonic point to guard against clock jitter
-    window_half_width = max(1, int(500e3 / (FS / 2) * len(pos_spectrum)))
-    ev_ahbe = np.zeros(129)
-    for i, idx in enumerate(sampled_indices):
-        start_w = max(0, idx - window_half_width)
-        end_w = min(len(pos_spectrum), idx + window_half_width + 1)
-        ev_ahbe[i] = np.sqrt(np.mean(pos_spectrum[start_w:end_w] ** 2))
-
-    # Normalize spectral eigenvector
-    ev_norm = ev_ahbe / (np.linalg.norm(ev_ahbe) + 1e-12)
-
-    return ev_norm, pos_spectrum, freq_bins
-
-# Process Training & Validation Chips
 training_data = []
 validation_data = []
+sample_trace_g = None
+sample_trace_t = None
+sample_spec_g = None
+sample_spec_t = None
 
-# Training Chips: 24 Golden, 24 Trojan
+# 48 Training Chips (24 Golden, 24 Trojan) with 6% PVT & 25 dB SNR
 for i in range(N_CHIPS_TRAIN_GOLDEN):
-    trace = generate_chip_trace(is_trojan=False, chip_id=i)
-    ev, pos_spec, freq_b = extract_spectral_eigenvector(trace)
-    training_data.append({"chip_id": f"G_train_{i+1}", "label": 0, "ev": ev.tolist()})
+    tr = synthesize_trace_from_vivado_csv(vcc_g, tog_g, is_trojan=False, chip_seed=i, snr_db=25.0, clk_drift_pct=0.2)
+    ev, _, raw_e, pos_spec = extract_ev_ahbe(tr)
+    if i == 0:
+        sample_trace_g, sample_spec_g = tr, pos_spec
+    training_data.append({"chip_id": f"G_train_{i+1}", "label": 0, "raw_energy": raw_e, "ev": ev.tolist()})
 
 for i in range(N_CHIPS_TRAIN_TROJAN):
-    trace = generate_chip_trace(is_trojan=True, chip_id=i + 50)
-    ev, pos_spec, freq_b = extract_spectral_eigenvector(trace)
-    training_data.append({"chip_id": f"T_train_{i+1}", "label": 1, "ev": ev.tolist()})
+    tr = synthesize_trace_from_vivado_csv(
+        vcc_g, tog_g, vcc_t_cycles=vcc_t, tog_t_cycles=tog_t,
+        is_trojan=True, chip_seed=i + 50, snr_db=25.0, clk_drift_pct=0.2
+    )
+    ev, _, raw_e, pos_spec = extract_ev_ahbe(tr)
+    if i == 0:
+        sample_trace_t, sample_spec_t = tr, pos_spec
+    training_data.append({"chip_id": f"T_train_{i+1}", "label": 1, "raw_energy": raw_e, "ev": ev.tolist()})
 
-# Validation Chips: 12 Golden, 12 Trojan
+# 24 Validation Chips (12 Golden, 12 Trojan)
 for i in range(N_CHIPS_VAL_GOLDEN):
-    trace = generate_chip_trace(is_trojan=False, chip_id=i + 100)
-    ev, pos_spec, freq_b = extract_spectral_eigenvector(trace)
-    validation_data.append({"chip_id": f"G_val_{i+1}", "label": 0, "ev": ev.tolist()})
+    tr = synthesize_trace_from_vivado_csv(vcc_g, tog_g, is_trojan=False, chip_seed=i + 100, snr_db=25.0, clk_drift_pct=0.2)
+    ev, _, raw_e, _ = extract_ev_ahbe(tr)
+    validation_data.append({"chip_id": f"G_val_{i+1}", "label": 0, "raw_energy": raw_e, "ev": ev.tolist()})
 
 for i in range(N_CHIPS_VAL_TROJAN):
-    trace = generate_chip_trace(is_trojan=True, chip_id=i + 150)
-    ev, pos_spec, freq_b = extract_spectral_eigenvector(trace)
-    validation_data.append({"chip_id": f"T_val_{i+1}", "label": 1, "ev": ev.tolist()})
+    tr = synthesize_trace_from_vivado_csv(
+        vcc_g, tog_g, vcc_t_cycles=vcc_t, tog_t_cycles=tog_t,
+        is_trojan=True, chip_seed=i + 150, snr_db=25.0, clk_drift_pct=0.2
+    )
+    ev, _, raw_e, _ = extract_ev_ahbe(tr)
+    validation_data.append({"chip_id": f"T_val_{i+1}", "label": 1, "raw_energy": raw_e, "ev": ev.tolist()})
 
-# Save extracted features to JSON
 output_json = {
     "sampling_frequency_hz": FS,
-    "clock_frequency_hz": F_CLK,
+    "clock_frequency_hz": F_CLK_NOM,
     "n_samples": N_SAMPLES,
     "eigenvector_dimension": 129,
     "training_chips": training_data,
-    "validation_chips": validation_data
+    "validation_chips": validation_data,
 }
 
-with open(REPORTS_DIR / "spectral_eigenvectors.json", "w") as f:
+out_path = REPORTS_DIR / "spectral_eigenvectors.json"
+with open(out_path, "w", encoding="utf-8") as f:
     json.dump(output_json, f, indent=2)
+print(f"[+] Saved spectral eigenvectors to {out_path}")
 
-print(f"[+] Saved spectral eigenvectors to {REPORTS_DIR / 'spectral_eigenvectors.json'}")
-
-# Generate Screenshot Plot: SFA Spectrum Comparison
-golden_trace_sample = generate_chip_trace(is_trojan=False, chip_id=0)
-trojan_trace_sample = generate_chip_trace(is_trojan=True, chip_id=50)
-
-_, g_spec, freq_b = extract_spectral_eigenvector(golden_trace_sample)
-_, t_spec, _ = extract_spectral_eigenvector(trojan_trace_sample)
-
+# Plot 1: Time-Domain Traces Comparison (clean formatting, zero raw LaTeX typos)
+n_zoom = 2500  # First 10 clock cycles (1.0 us)
+t_us = np.arange(n_zoom) / FS * 1e6
 plt.figure(figsize=(10, 5), dpi=300)
-plt.plot(freq_b[:100000] / 1e6, g_spec[:100000], label="Golden Chip Spectrum (128-bit AES)", color="#007791", alpha=0.85, linewidth=1.2)
-plt.plot(freq_b[:100000] / 1e6, t_spec[:100000], label="Trojan Chip Spectrum (0.1% Counter Payload)", color="#C0392B", alpha=0.75, linewidth=1.2)
+plt.plot(t_us, sample_trace_g[:n_zoom] * 1e3, label="Golden Chip Shunt Trace (128-bit AES)", color="#007791", alpha=0.88, linewidth=1.2)
+plt.plot(t_us, sample_trace_t[:n_zoom] * 1e3, label="Trojan Chip Shunt Trace (2-Bit Counter)", color="#C0392B", alpha=0.72, linewidth=1.1)
+plt.title("SPECTRA: Time-Domain Vccint Shunt Power Proxy Traces", fontsize=12, fontweight='bold', pad=12)
+plt.xlabel("Time (us)", fontsize=10, fontweight='bold')
+plt.ylabel("Shunt Voltage Drop (mV)", fontsize=10, fontweight='bold')
+plt.grid(True, linestyle="--", alpha=0.5)
+plt.legend(loc="upper right", frameon=True)
+plt.tight_layout()
+td_path = SCREENSHOTS_DIR / "time_domain_traces.png"
+plt.savefig(td_path, dpi=300)
+plt.close()
+print(f"[+] Saved time-domain traces plot to {td_path}")
+
+# Plot 2: SFA Spectrum Comparison (0 - 250 MHz Zoom)
+freq_mhz = np.linspace(0, FS / 2.0, len(sample_spec_g)) / 1e6
+zoom_bins = 100000
+plt.figure(figsize=(10, 5), dpi=300)
+plt.plot(freq_mhz[:zoom_bins], sample_spec_g[:zoom_bins], label="Golden Chip Spectrum (128-bit AES)", color="#007791", alpha=0.85, linewidth=1.2)
+plt.plot(freq_mhz[:zoom_bins], sample_spec_t[:zoom_bins], label="Trojan Chip Spectrum (2-Bit Counter Payload)", color="#C0392B", alpha=0.75, linewidth=1.2)
 plt.title("SPECTRA: Side-Channel Spectral Feature Analysis (0 - 250 MHz Zoom)", fontsize=12, fontweight='bold', pad=12)
 plt.xlabel("Frequency (MHz)", fontsize=10, fontweight='bold')
 plt.ylabel("Spectral Magnitude |D(f)|", fontsize=10, fontweight='bold')
 plt.grid(True, linestyle="--", alpha=0.5)
 plt.legend(loc="upper right", frameon=True)
 plt.tight_layout()
-
-screenshot_path = SCREENSHOTS_DIR / "sfa_spectrum_comparison.png"
-plt.savefig(screenshot_path, dpi=300)
+spec_path = SCREENSHOTS_DIR / "sfa_spectrum_comparison.png"
+plt.savefig(spec_path, dpi=300)
 plt.close()
-print(f"[+] Saved spectrum comparison figure to {screenshot_path}")
+print(f"[+] Saved spectrum comparison figure to {spec_path}")

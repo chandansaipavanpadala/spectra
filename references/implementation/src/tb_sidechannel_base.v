@@ -1,49 +1,50 @@
 `timescale 1ns / 1ps
 ////////////////////////////////////////////////////////////////////////////////
 // Module Name: tb_sidechannel_base
-// Description: Strict IEEE JIOT 2024 Base Paper Side-Channel Testbench
+// Description: Unified Side-Channel Co-Simulation Testbench (Base Paper)
 //              Applies Top-10 Low-Toggle Optimization Stimulus Vectors (Section IV-A)
-//              and records cycle-by-cycle hardware switching traces.
-// Reference:   Chunhua He et al., IEEE JIOT, Vol. 11, No. 8, pp. 13927-13937, 2024.
+//              and logs deterministic cycle-by-cycle switching traces.
+// Reference:   Chunhua He et al., IEEE JIOT, Vol. 11, No. 8, pp. 13927-13937, 2024
 // Format:      cycle,timestamp_ns,hamming_toggles,vccint_shunt_v,cipher_match
 ////////////////////////////////////////////////////////////////////////////////
 
 module tb_sidechannel_base;
 
-    // Testbench Signals
     reg         clk;
     reg         rst_n;
     reg         start;
     reg [127:0] key_in;
     reg [127:0] state_in;
 
-    // Golden Core Interface
     wire [127:0] state_out_golden;
     wire         done_golden;
-
-    // Trojan Core Interface
     wire [127:0] state_out_trojan;
     wire         done_trojan;
 
-    // File Descriptors
     integer fd_g;
     integer fd_t;
     integer cycle_counter;
     integer p_idx;
     integer wait_cycles;
 
-    // Tracking registers for bitwise Hamming distance computation
+    // Tracking registers for genuine bitwise Hamming transitions
     reg [127:0] prev_state_g;
+    reg [127:0] prev_key_g;
     reg [127:0] prev_state_t;
+    reg [127:0] prev_key_t;
     reg [1:0]   prev_trojan_cnt;
+    reg         prev_payload_reg;
 
+    integer core_toggles_g;
+    integer core_toggles_t;
+    integer trojan_toggles;
     integer toggles_g;
     integer toggles_t;
     real    vcc_shunt_g;
     real    vcc_shunt_t;
     integer cipher_match;
 
-    // Instantiate Golden AES Core (aes_128_base)
+    // Golden AES Core
     aes_128_base uut_golden (
         .clk(clk),
         .rst_n(rst_n),
@@ -54,7 +55,7 @@ module tb_sidechannel_base;
         .done(done_golden)
     );
 
-    // Instantiate Trojan-Infected Core (aes_128_trojan_base)
+    // Trojan-Infected AES Core
     aes_128_trojan_base uut_trojan (
         .clk(clk),
         .rst_n(rst_n),
@@ -65,38 +66,41 @@ module tb_sidechannel_base;
         .done(done_trojan)
     );
 
-    // Clock Generation: 10 MHz System Clock (Period = 100 ns, Half-period = 50 ns)
+    // 10 MHz System Clock (100 ns period)
     always #50 clk = ~clk;
 
-    // Global Safety Watchdog Timer (5 ms timeout)
+    // Global Watchdog Timer (5 ms timeout prevents Vivado hang)
     initial begin
         #5000000;
         $display("[WATCHDOG] Simulation timeout reached. Flushing files and exiting.");
-        $dumpflush;
-        if (fd_g) $fclose(fd_g);
-        if (fd_t) $fclose(fd_t);
+        if (fd_g) begin
+            $fflush(fd_g);
+            $fclose(fd_g);
+        end
+        if (fd_t) begin
+            $fflush(fd_t);
+            $fclose(fd_t);
+        end
         $finish;
     end
 
-    // Hamming distance (popcount) function for 128-bit switching vector
-    function integer popcount;
+    // Bitwise Hamming Distance (popcount) over 128 bits
+    function integer popcount128;
         input [127:0] vec;
         integer i, cnt;
         begin
             cnt = 0;
             for (i = 0; i < 128; i = i + 1) begin
-                if (vec[i]) cnt = cnt + 1;
+                if (vec[i] === 1'b1) cnt = cnt + 1;
             end
-            popcount = cnt;
+            popcount128 = cnt;
         end
     endfunction
 
-    // Top-10 Low-Toggle Optimization Vectors (Section IV-A)
+    // Top-10 Low-Toggle Stimulus Patterns (Section IV-A)
     reg [127:0] opt_patterns [0:9];
 
-    // Stimulus & Functional Parity Verification Loop
     initial begin
-        // Top-10 Low-Toggle Stimulus Patterns from Section IV-A
         opt_patterns[0] = 128'h00000000_00000000_00000000_00000001;
         opt_patterns[1] = 128'h00000000_00000000_00000000_00000003;
         opt_patterns[2] = 128'h00000000_00000000_00000000_00000007;
@@ -108,39 +112,38 @@ module tb_sidechannel_base;
         opt_patterns[8] = 128'h00000000_00000000_00000000_000001FF;
         opt_patterns[9] = 128'h00000000_00000000_00000000_000003FF;
 
-        // Initialize signals
-        clk = 0;
-        rst_n = 0;
-        start = 0;
-        key_in = 128'h00010203_04050607_08090A0B_0C0D0E0F;
-        state_in = 128'h0;
-        cycle_counter = 0;
-        p_idx = 0;
-        wait_cycles = 0;
-        prev_state_g = 128'h0;
-        prev_state_t = 128'h0;
-        prev_trojan_cnt = 2'b00;
+        clk              = 1'b0;
+        rst_n            = 1'b0;
+        start            = 1'b0;
+        key_in           = 128'h00010203_04050607_08090A0B_0C0D0E0F;
+        state_in         = 128'h0;
+        cycle_counter    = 0;
+        p_idx            = 0;
+        wait_cycles      = 0;
+        prev_state_g     = 128'h0;
+        prev_key_g       = 128'h0;
+        prev_state_t     = 128'h0;
+        prev_key_t       = 128'h0;
+        prev_trojan_cnt  = 2'b00;
+        prev_payload_reg = 1'b0;
 
-        // Open CSV output files in local simulation directory
         fd_g = $fopen("power_trace_golden.csv", "w");
         fd_t = $fopen("power_trace_trojan.csv", "w");
 
         if (fd_g == 0 || fd_t == 0) begin
-            $display("[!] Error: Unable to open trace CSV files for writing.");
+            $display("[!] Error: Unable to open trace CSV output files.");
             $finish;
         end
 
-        // Exact CSV header requested
         $fdisplay(fd_g, "cycle,timestamp_ns,hamming_toggles,vccint_shunt_v,cipher_match");
         $fdisplay(fd_t, "cycle,timestamp_ns,hamming_toggles,vccint_shunt_v,cipher_match");
 
         #100;
-        rst_n = 1;
+        rst_n = 1'b1;
         #100;
 
-        $display("[+] Starting Base Paper Low-Toggle Side-Channel Acquisition (1000 Cycles Target)...");
+        $display("[+] Starting Base Paper Side-Channel Co-Simulation (1000 Cycles Target)...");
 
-        // Loop over the top-10 optimization patterns with safe bounded wait
         while (cycle_counter < 1000) begin
             @(posedge clk);
             if (uut_golden.current_state == 2'b00 && !start) begin
@@ -150,7 +153,6 @@ module tb_sidechannel_base;
                 @(posedge clk);
                 start <= 1'b0;
 
-                // Safe bounded wait for 10-round AES completion (max 25 clock cycles)
                 wait_cycles = 0;
                 while (done_golden !== 1'b1 && wait_cycles < 25 && cycle_counter < 1000) begin
                     @(posedge clk);
@@ -160,48 +162,62 @@ module tb_sidechannel_base;
         end
     end
 
-    // Cycle-by-cycle Hamming distance calculation & deterministic CSV logging
+    // Cycle-by-cycle Hamming transition logging and bounded termination
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            cycle_counter   <= 0;
-            prev_state_g    <= 128'h0;
-            prev_state_t    <= 128'h0;
-            prev_trojan_cnt <= 2'b00;
+            cycle_counter    <= 0;
+            prev_state_g     <= 128'h0;
+            prev_key_g       <= 128'h0;
+            prev_state_t     <= 128'h0;
+            prev_key_t       <= 128'h0;
+            prev_trojan_cnt  <= 2'b00;
+            prev_payload_reg <= 1'b0;
         end else begin
             if (cycle_counter < 1000) begin
                 cycle_counter = cycle_counter + 1;
 
-                // Popcount Hamming distance for golden and trojan switching registers
-                toggles_g = popcount(uut_golden.state_reg ^ prev_state_g);
-                toggles_t = popcount(uut_trojan.state_reg ^ prev_state_t) + 
-                            popcount({126'b0, uut_trojan.trojan_counter ^ prev_trojan_cnt});
+                core_toggles_g = popcount128(uut_golden.state_reg ^ prev_state_g) +
+                                 popcount128(uut_golden.round_key ^ prev_key_g);
 
-                // Voltage proxy across 0.5 Ohm shunt resistor on Vccint (in Volts)
-                // Baseline: 8.5 mV (0.008500 V) + 150 uV/toggle (0.000150 V/toggle)
-                vcc_shunt_g = 0.008500 + 0.000150 * toggles_g;
-                vcc_shunt_t = 0.008500 + 0.000150 * toggles_t + 0.000035;
+                core_toggles_t = popcount128(uut_trojan.state_reg ^ prev_state_t) +
+                                 popcount128(uut_trojan.round_key ^ prev_key_t);
 
-                // Functional parity verification (cipher_match == 1 when encryption is correct)
-                cipher_match = (state_out_golden === state_out_trojan) ? 1 : 1;
-                if (done_golden && done_trojan && (state_out_golden !== state_out_trojan)) begin
-                    cipher_match = 0;
+                trojan_toggles = ((uut_trojan.trojan_counter[0] !== prev_trojan_cnt[0]) ? 1 : 0) +
+                                 ((uut_trojan.trojan_counter[1] !== prev_trojan_cnt[1]) ? 1 : 0) +
+                                 ((uut_trojan.er_payload_reg    !== prev_payload_reg)   ? 1 : 0);
+
+                toggles_g = core_toggles_g;
+                toggles_t = core_toggles_t + trojan_toggles;
+
+                // Shunt resistor (0.5 Ohm) voltage proxy in Volts driven strictly by RTL toggles
+                vcc_shunt_g = 0.008500 + 0.000150 * core_toggles_g;
+                vcc_shunt_t = 0.008500 + 0.000150 * core_toggles_t + 0.000045 * trojan_toggles;
+
+                // Verify Golden vs. Trojan functional equivalence on every cycle
+                cipher_match = (state_out_golden === state_out_trojan) ? 1 : 0;
+                if (cipher_match == 0) begin
                     $display("[!] Logic Error: Ciphertext mismatch at cycle %0d!", cycle_counter);
                 end
 
-                // Write deterministic CSV record
                 $fdisplay(fd_g, "%0d,%0d,%0d,%0.6f,%0d", cycle_counter, $time, toggles_g, vcc_shunt_g, cipher_match);
                 $fdisplay(fd_t, "%0d,%0d,%0d,%0.6f,%0d", cycle_counter, $time, toggles_t, vcc_shunt_t, cipher_match);
 
-                // Update previous state registers for next cycle Hamming distance
-                prev_state_g    <= uut_golden.state_reg;
-                prev_state_t    <= uut_trojan.state_reg;
-                prev_trojan_cnt <= uut_trojan.trojan_counter;
+                prev_state_g     <= uut_golden.state_reg;
+                prev_key_g       <= uut_golden.round_key;
+                prev_state_t     <= uut_trojan.state_reg;
+                prev_key_t       <= uut_trojan.round_key;
+                prev_trojan_cnt  <= uut_trojan.trojan_counter;
+                prev_payload_reg <= uut_trojan.er_payload_reg;
             end else begin
-                #10;
-                $dumpflush;
-                if (fd_g) $fclose(fd_g);
-                if (fd_t) $fclose(fd_t);
-                $display("[+] tb_sidechannel_base simulation finished successfully: 1000 cycles logged.");
+                if (fd_g) begin
+                    $fflush(fd_g);
+                    $fclose(fd_g);
+                end
+                if (fd_t) begin
+                    $fflush(fd_t);
+                    $fclose(fd_t);
+                end
+                $display("[+] tb_sidechannel_base simulation completed successfully: 1000 cycles logged.");
                 $finish;
             end
         end
