@@ -6,7 +6,7 @@ Authors: Chunhua He et al., IEEE Internet of Things Journal, Vol. 11, No. 8, pp.
 Section: Section III-D (Eq. 17 - Eq. 20) & Section IV-C
 Description:
   Computes genuine 129-D Euclidean Distance (Eq. 17) and 10-D squared Mahalanobis Distance
-  matching MATLAB mahal() (Eq. 18, Ridge regularization 1e-8 * I).
+  matching MATLAB mahal() (Eq. 18, Ridge regularization 1e-10 * I).
   Evaluates Fusion Distance (Eq. 19: FD = 0.5*ED + 0.5*MD) and Decision Ratio R_FD = FD_G / FD_T.
   Zero hardcoded coordinates or fabricated ED/MD values.
 """

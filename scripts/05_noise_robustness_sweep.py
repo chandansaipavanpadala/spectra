@@ -158,7 +158,7 @@ def main():
     ax1.plot(snr_levels, snr_results["method_a_he"]["accuracy"], 'o--', color='#C0392B',
              linewidth=2.0, markersize=8, label='Baseline He et al. (Single-Bin)')
     ax1.axhline(100.0, color='#0A192F', linestyle=':', alpha=0.6, linewidth=1.0)
-    ax1.set_title("Panel 1: Classification Accuracy vs. SNR (dB)", fontsize=11, fontweight='bold', pad=34)
+    ax1.set_title("Panel 1: Accuracy vs. SNR (at 0.5% Clock Drift & 6% PVT)", fontsize=11, fontweight='bold', pad=34)
     ax1.set_xlabel("Signal-to-Noise Ratio (SNR in dB)", fontsize=10, fontweight='bold')
     ax1.set_ylabel("Detection Accuracy (%)", fontsize=10, fontweight='bold')
     ax1.set_ylim(25, 108)

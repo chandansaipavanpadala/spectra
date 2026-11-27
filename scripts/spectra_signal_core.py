@@ -210,11 +210,15 @@ def compute_entropy_fusion_weights(X_train_129, scores_train_10, cluster_labels,
                                    mu_g_129, mu_t_129, mu_g_10, mu_t_10,
                                    inv_cov_g, inv_cov_t):
     """
-    Computes adaptive Euclidean vs. Mahalanobis fusion weights (a1, a2) from the
-    true 129-D Euclidean and 10-D Mahalanobis intra-cluster variances across all
-    unsupervised training assignments:
-      w_ED = 1 / Var(ED_train),  w_MD = 1 / Var(MD_train)
-      a1 = w_ED / (w_ED + w_MD), a2 = w_MD / (w_ED + w_MD)
+    Computes scale-normalized dimensionless distances (ED_tilde, MD_tilde) and
+    information-entropy / inverse-dispersion adaptive weights (a1, a2) across the
+    48 unsupervised training assignments:
+      scale_ED  = mean(ED_train),   scale_MD = mean(MD_train)
+      ED_tilde  = ED / scale_ED,    MD_tilde = MD / scale_MD
+      w_ED = 1 / Var(ED_tilde),     w_MD = 1 / Var(MD_tilde)
+      a1, a2 = clipped to [0.20, 0.80] with a1 + a2 = 1.0
+    Returns:
+      (a1, a2, var_ed_tilde, var_md_tilde, shannon_entropy, scale_ed, scale_md)
     """
     ed_list = []
     md_list = []
@@ -228,15 +232,24 @@ def compute_entropy_fusion_weights(X_train_129, scores_train_10, cluster_labels,
             diff = scores_train_10[i] - mu_t_10
             md_list.append(float(np.sqrt(max(0.0, diff @ inv_cov_t @ diff.T))))
 
-    var_ed = float(np.var(ed_list) + 1e-12)
-    var_md = float(np.var(md_list) + 1e-12)
-    w_ed = 1.0 / var_ed
-    w_md = 1.0 / var_md
-    a1 = float(w_ed / (w_ed + w_md))
-    a2 = float(w_md / (w_ed + w_md))
+    ed_arr = np.asarray(ed_list, dtype=np.float64)
+    md_arr = np.asarray(md_list, dtype=np.float64)
+    scale_ed = float(np.mean(ed_arr) + 1e-12)
+    scale_md = float(np.mean(md_arr) + 1e-12)
+
+    ed_tilde = ed_arr / scale_ed
+    md_tilde = md_arr / scale_md
+
+    var_ed_tilde = float(np.var(ed_tilde) + 1e-8)
+    var_md_tilde = float(np.var(md_tilde) + 1e-8)
+    w_ed = 1.0 / var_ed_tilde
+    w_md = 1.0 / var_md_tilde
+    a1_raw = float(w_ed / (w_ed + w_md))
+    a1 = float(np.clip(a1_raw, 0.20, 0.80))
+    a2 = float(1.0 - a1)
 
     shannon_entropy = float(-(a1 * np.log2(max(a1, 1e-12)) + a2 * np.log2(max(a2, 1e-12))))
-    return a1, a2, var_ed, var_md, shannon_entropy
+    return a1, a2, var_ed_tilde, var_md_tilde, shannon_entropy, scale_ed, scale_md
 
 
 def run_unsupervised_pipeline(X_train, raw_energies_train, X_val, y_val, use_entropy_fusion=True):
@@ -328,12 +341,13 @@ def run_unsupervised_pipeline(X_train, raw_energies_train, X_val, y_val, use_ent
     inv_cov_t = np.linalg.pinv(cov_t_10)
 
     if use_entropy_fusion:
-        a1, a2, _, _, _ = compute_entropy_fusion_weights(
+        a1, a2, _, _, _, scale_ed, scale_md = compute_entropy_fusion_weights(
             X_train, scores_train, pred_cluster_train,
             v_golden, v_trojan, mu_g_10, mu_t_10, inv_cov_g, inv_cov_t
         )
     else:
         a1, a2 = 0.5, 0.5
+        scale_ed, scale_md = 1.0, 1.0
 
     pred_labels = []
     r_fd_golden = []
@@ -349,8 +363,8 @@ def run_unsupervised_pipeline(X_train, raw_energies_train, X_val, y_val, use_ent
         md_g = float(np.sqrt(max(0.0, diff_g @ inv_cov_g @ diff_g.T)))
         md_t = float(np.sqrt(max(0.0, diff_t @ inv_cov_t @ diff_t.T)))
 
-        fd_g = a1 * ed_g + a2 * md_g
-        fd_t = a1 * ed_t + a2 * md_t
+        fd_g = a1 * (ed_g / scale_ed) + a2 * (md_g / scale_md)
+        fd_t = a1 * (ed_t / scale_ed) + a2 * (md_t / scale_md)
         r_fd = fd_g / (fd_t + 1e-12)
 
         pred = 1 if r_fd >= 1.0 else 0

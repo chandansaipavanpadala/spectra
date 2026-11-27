@@ -56,22 +56,26 @@ cov_T_10 = np.cov(sc_t, rowvar=False) + 1e-6 * np.eye(10)
 inv_cov_G_10 = np.linalg.pinv(cov_G_10)
 inv_cov_T_10 = np.linalg.pinv(cov_T_10)
 
-# Adaptive Weights computed across ALL 48 unsupervised training chips in true 129-D ED & 10-D MD spaces
-a1, a2, var_ed, var_md, shannon_entropy = compute_entropy_fusion_weights(
+# Adaptive Weights computed across ALL 48 unsupervised training chips using scale-normalized dimensionless distances
+a1, a2, var_ed_tilde, var_md_tilde, shannon_entropy, scale_ed, scale_md = compute_entropy_fusion_weights(
     X_train_129, scores_train_10, cluster_pred_train,
     mu_G_129, mu_T_129, mu_G_10, mu_T_10, inv_cov_G_10, inv_cov_T_10
 )
 
-print("[+] Adaptive Fusion Weight Formulation:")
-print("    w_ED = 1 / Var(ED_129_train), w_MD = 1 / Var(MD_10_train)")
-print("    a1 = w_ED / (w_ED + w_MD),    a2 = w_MD / (w_ED + w_MD)")
-print(f"    Var(ED_129) = {var_ed:.6e}, Var(MD_10) = {var_md:.6e}, H(p) = {shannon_entropy:.6f} bits")
-print(f"[+] Fusion Weights: a1 (ED) = {a1:.6f}, a2 (MD) = {a2:.6f}")
+print("[+] Scale-Normalized Adaptive Fusion Weight Formulation:")
+print("    ED_tilde = ED / scale_ED,  MD_tilde = MD / scale_MD")
+print("    w_ED = 1 / Var(ED_tilde),  w_MD = 1 / Var(MD_tilde)")
+print("    a1 = clip(w_ED / (w_ED + w_MD), 0.20, 0.80),  a2 = 1 - a1")
+print(f"    scale_ED = {scale_ed:.6e}, scale_MD = {scale_md:.6f}")
+print(f"    Var(ED_tilde) = {var_ed_tilde:.6f}, Var(MD_tilde) = {var_md_tilde:.6f}, H(p) = {shannon_entropy:.6f} bits")
+print(f"[+] Fusion Weights: a1 (ED_tilde) = {a1:.6f}, a2 (MD_tilde) = {a2:.6f}")
 
 # Evaluate 24 Unseen Validation Chips
 val_chips = spec_data["validation_chips"]
 val_results = []
 fd_g_list, fd_t_list, true_labels, pred_labels = [], [], [], []
+ed_share_g_list, md_share_g_list = [], []
+ed_share_t_list, md_share_t_list = [], []
 
 for chip in val_chips:
     chip_id = chip["chip_id"]
@@ -87,10 +91,25 @@ for chip in val_chips:
     md_g = float(np.sqrt(max(0.0, diff_g @ inv_cov_G_10 @ diff_g.T)))
     md_t = float(np.sqrt(max(0.0, diff_t @ inv_cov_T_10 @ diff_t.T)))
 
-    fd_g = float(a1 * ed_g + a2 * md_g)
-    fd_t = float(a1 * ed_t + a2 * md_t)
+    ed_g_tilde = ed_g / scale_ed
+    ed_t_tilde = ed_t / scale_ed
+    md_g_tilde = md_g / scale_md
+    md_t_tilde = md_t / scale_md
+
+    term_ed_g = a1 * ed_g_tilde
+    term_md_g = a2 * md_g_tilde
+    term_ed_t = a1 * ed_t_tilde
+    term_md_t = a2 * md_t_tilde
+
+    fd_g = float(term_ed_g + term_md_g)
+    fd_t = float(term_ed_t + term_md_t)
     r_fd = float(fd_g / (fd_t + 1e-12))
     pred_label = 1 if r_fd >= 1.0 else 0
+
+    ed_share_g_list.append((term_ed_g / max(fd_g, 1e-12)) * 100.0)
+    md_share_g_list.append((term_md_g / max(fd_g, 1e-12)) * 100.0)
+    ed_share_t_list.append((term_ed_t / max(fd_t, 1e-12)) * 100.0)
+    md_share_t_list.append((term_md_t / max(fd_t, 1e-12)) * 100.0)
 
     fd_g_list.append(fd_g)
     fd_t_list.append(fd_t)
@@ -105,6 +124,10 @@ for chip in val_chips:
         "ed_t": ed_t,
         "md_g": md_g,
         "md_t": md_t,
+        "ed_g_tilde": ed_g_tilde,
+        "ed_t_tilde": ed_t_tilde,
+        "md_g_tilde": md_g_tilde,
+        "md_t_tilde": md_t_tilde,
         "fd_g": fd_g,
         "fd_t": fd_t,
         "r_fd": r_fd,
@@ -123,15 +146,30 @@ precision = float(tp / (tp + fp) * 100.0 if (tp + fp) > 0 else 100.0)
 recall = float(tp / (tp + fn) * 100.0 if (tp + fn) > 0 else 100.0)
 fpr = float(fp / (fp + tn) * 100.0 if (fp + tn) > 0 else 0.0)
 
+mean_ed_share_fd_g = float(np.mean(ed_share_g_list))
+mean_md_share_fd_g = float(np.mean(md_share_g_list))
+mean_ed_share_fd_t = float(np.mean(ed_share_t_list))
+mean_md_share_fd_t = float(np.mean(md_share_t_list))
+
 print(f"[+] SPECTRA Detection Accuracy: {accuracy:.2f}%")
 print(f"[+] Precision: {precision:.2f}%, Recall: {recall:.2f}%, FPR: {fpr:.2f}%")
+print(f"[+] Mean Term Share -> FD_G: {mean_ed_share_fd_g:.1f}% ED / {mean_md_share_fd_g:.1f}% MD | "
+      f"FD_T: {mean_ed_share_fd_t:.1f}% ED / {mean_md_share_fd_t:.1f}% MD")
 
 output_report = {
     "weight_formula": {
-        "equation": "w_ED = 1/Var(ED_129), w_MD = 1/Var(MD_10); a1 = w_ED/(w_ED+w_MD), a2 = w_MD/(w_ED+w_MD)",
-        "var_ed_129": var_ed,
-        "var_md_10": var_md,
+        "equation": "ED_tilde = ED/scale_ED, MD_tilde = MD/scale_MD; w_d = 1/Var(d_tilde); a1 = clip(w_ED/(w_ED+w_MD), 0.20, 0.80), a2 = 1-a1",
+        "scale_ed": scale_ed,
+        "scale_md": scale_md,
+        "var_ed_tilde": var_ed_tilde,
+        "var_md_tilde": var_md_tilde,
         "shannon_entropy_bits": shannon_entropy,
+        "mean_contribution_pct": {
+            "fd_g_ed_pct": mean_ed_share_fd_g,
+            "fd_g_md_pct": mean_md_share_fd_g,
+            "fd_t_ed_pct": mean_ed_share_fd_t,
+            "fd_t_md_pct": mean_md_share_fd_t,
+        },
     },
     "fusion_weights": {"a1_ed": a1, "a2_md": a2},
     "metrics": {
@@ -177,7 +215,7 @@ for tick in ax.get_xticklabels() + ax.get_yticklabels():
 
 ax.tick_params(direction='in', top=True, right=True, length=4, width=0.8)
 ax.grid(True, linestyle="--", alpha=0.4)
-leg = ax.legend(loc="upper left", frameon=True, framealpha=0.95, edgecolor='black', fancybox=False, fontsize=9.5)
+leg = ax.legend(loc="upper center", bbox_to_anchor=(0.53, 0.98), frameon=True, framealpha=0.96, edgecolor='black', fancybox=False, fontsize=9.5)
 for text in leg.get_texts():
     text.set_fontweight('bold')
 
